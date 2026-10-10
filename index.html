@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的歌单</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
+      background-attachment: fixed;
+      color: #0c4a6e;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
+
+    h1 {
+      margin-bottom: 24px;
+      text-align: center;
+      font-size: 32px;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9, #06b6d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .box {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.15);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+    .box h2 { font-size: 16px; margin-bottom: 14px; color: #0c4a6e; }
+
+    input, button {
+      font-size: 14px;
+      padding: 10px 14px;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    input {
+      background: rgba(255,255,255,0.8);
+      color: #0c4a6e;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+      background: white;
+    }
+    input::placeholder { color: #7dd3fc; }
+
+    button {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+    }
+    button:hover {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+    }
+    button:active { transform: translateY(0); }
+
+    .msg { font-size: 13px; margin-top: 10px; min-height: 20px; }
+    .msg.error { color: #e74c3c; }
+    .msg.success { color: #0284c7; }
+
+    /* 波浪装饰 */
+    .wave-deco {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 200px;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* 登录卡片 */
+    #loginBox .box {
+      max-width: 460px;
+      margin: 60px auto;
+      padding: 36px 32px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(2, 132, 199, 0.2);
+    }
+    #loginBox h2 {
+      font-size: 22px;
+      margin-bottom: 24px;
+      text-align: center;
+      color: #0c4a6e;
+    }
+    #loginBox button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
+    #loginBox button.signup-btn {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+    }
+
+    /* 用户栏 */
+    .user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #0c4a6e;
+      margin-bottom: 14px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .user-bar button {
+      padding: 6px 14px;
+      font-size: 13px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-radius: 8px;
+    }
+    .user-bar button:hover {
+      background: linear-gradient(135deg, #ea580c, #c2410c);
+    }
+
+    /* 工具栏 */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 240px; }
+    .search-wrap .icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: #0ea5e9; font-size: 15px;
+      pointer-events: none;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding-left: 38px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.85);
+    }
+    .toolbar select {
+      padding: 10px 14px;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.85);
+      color: #0c4a6e;
+      cursor: pointer;
+    }
+    .toolbar button.sort-btn {
+      padding: 10px 16px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.85);
+      color: #0284c7;
+      border: 1px solid #bae6fd;
+      font-weight: normal;
+    }
+    .toolbar button.sort-btn:hover {
+      background: #e0f2fe;
+      transform: translateY(-1px);
+    }
+    .toolbar button.sort-btn.active {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      border-color: transparent;
+    }
+    .toolbar button.add-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .toolbar button.export-btn {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      padding: 10px 20px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .toolbar button.export-btn:hover {
+      background: linear-gradient(135deg, #0891b2, #155e75);
+    }
+
+    /* 表格 */
+    .song-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .song-table th, .song-table td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid #e0f2fe;
+      vertical-align: top;
+    }
+    .song-table th {
+      background: rgba(224, 242, 254, 0.6);
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .song-table tbody tr:nth-child(even) { background: rgba(224, 242, 254, 0.3); }
+    .song-table tbody tr:hover { background: rgba(186, 230, 253, 0.5); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 4px;
+      margin-bottom: 2px;
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      color: #0369a1;
+      font-weight: 500;
+    }
+    .empty { text-align: center; color: #7dd3fc; padding: 40px; }
+
+    .op-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: normal;
+      border-radius: 8px;
+      margin-right: 4px;
+    }
+    .op-btn.edit {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    }
+    .op-btn.edit:hover {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    }
+    .op-btn.del {
+      background: linear-gradient(135deg, #fb923c, #f97316);
+    }
+    .op-btn.del:hover {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    /* 模态窗口 */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 74, 110, 0.4);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+      z-index: 100;
+      overflow-y: auto;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 20px 60px rgba(2, 132, 199, 0.3);
+      border: 1px solid #e0f2fe;
+    }
+    .modal.small { max-width: 400px; }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { font-size: 18px; color: #0c4a6e; }
+    .modal-header .close {
+      cursor: pointer;
+      font-size: 24px;
+      color: #7dd3fc;
+      background: none;
+      border: none;
+      padding: 0;
+      line-height: 1;
+      box-shadow: none;
+    }
+    .modal-header .close:hover { color: #0284c7; background: none; transform: none; }
+
+    .form-row { margin-bottom: 16px; position: relative; }
+    .form-row label {
+      display: block;
+      font-size: 13px;
+      color: #0369a1;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .form-row input[type="text"] { width: 100%; }
+
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #bae6fd;
+      border-top: none;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.15);
+    }
+    .dropdown.show { display: block; }
+    .dropdown-item {
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #0c4a6e;
+    }
+    .dropdown-item:hover { background: #e0f2fe; }
+    .dropdown-hint {
+      padding: 7px 14px;
+      font-size: 12px;
+      color: #7dd3fc;
+      border-top: 1px dashed #e0f2fe;
+      cursor: default;
+    }
+
+    .singer-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .singer-tag {
+      background: linear-gradient(135deg, #cffafe, #a5f3fc);
+      color: #0e7490;
+      padding: 4px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .singer-tag .remove {
+      cursor: pointer;
+      color: #0891b2;
+      font-weight: bold;
+    }
+    .singer-tag .remove:hover { color: #e74c3c; }
+    .singer-input-row { display: flex; gap: 8px; }
+    .singer-input-row input { flex: 1; }
+    .singer-input-row button { padding: 10px 18px; white-space: nowrap; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      color: #1e40af;
+      padding: 4px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .tag .remove {
+      cursor: pointer;
+      color: #1d4ed8;
+      font-weight: bold;
+    }
+    .tag .remove:hover { color: #e74c3c; }
+
+    .submit-btn { width: 100%; padding: 13px; font-size: 15px; margin-top: 10px; }
+
+    .confirm-text { font-size: 14px; color: #0c4a6e; margin-bottom: 20px; line-height: 1.6; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .confirm-actions button { padding: 9px 20px; }
+    .confirm-actions .cancel {
+      background: #e0f2fe;
+      color: #0369a1;
+      box-shadow: none;
+    }
+    .confirm-actions .cancel:hover { background: #bae6fd; transform: none; }
+    .confirm-actions .danger {
+      background: linear-gradient(135deg, #fb923c, #f97316);
+    }
+    .confirm-actions .danger:hover {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    /* 导出界面 */
+    .export-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      z-index: 200;
+      overflow: hidden;
+    }
+    .export-mask.show { display: flex; }
+    .export-panel {
+      width: 340px;
+      background: white;
+      padding: 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .export-panel h3 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: #2c3e50;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .export-panel .form-row { margin-bottom: 12px; }
+    .export-panel .form-row label {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 4px;
+    }
+    .export-panel input[type="text"],
+    .export-panel input[type="number"],
+    .export-panel select {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+    .export-panel input[type="color"] {
+      padding: 2px;
+      height: 34px;
+      cursor: pointer;
+    }
+    .export-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid #eee;
+    }
+    .export-actions button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+    }
+    .export-actions .primary { background: #5b8def; }
+    .export-actions .primary:hover { background: #4478d6; }
+    .export-actions .secondary { background: #ccc; }
+    .export-actions .secondary:hover { background: #aaa; }
+
+    .export-preview {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #2b2b2b;
+      overflow: hidden;
+      position: relative;
+    }
+    .export-preview-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: #1f1f1f;
+      color: #ddd;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .export-preview-topbar button {
+      background: #3a3a3a;
+      color: #ddd;
+      border: none;
+      padding: 4px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .export-preview-topbar button:hover { background: #4a4a4a; }
+    .export-preview-topbar input[type="range"] {
+      width: 180px;
+    }
+    .export-preview-topbar .zoom-label {
+      min-width: 50px;
+      text-align: right;
+    }
+    .export-preview-info {
+      color: #aaa;
+      font-size: 12px;
+      text-align: center;
+      padding: 6px 0;
+      background: #1f1f1f;
+      flex-shrink: 0;
+    }
+    .export-viewport {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      cursor: grab;
+    }
+    .export-viewport.dragging { cursor: grabbing; }
+    .export-stage {
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100%;
+      min-width: 100%;
+    }
+    .page-canvas {
+      background: white;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+      transform-origin: top left;
+      margin: 0 auto;
+    }
+    .page-canvas .page-content {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .page-group { margin-bottom: 20px; }
+    .page-group .page-title {
+      font-weight: bold;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .page-group .page-songs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      line-height: 1.7;
+      padding-left: 30px;
+    }
+    .page-group .page-songs .song-name { white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <svg class="wave-deco" viewBox="0 0 1440 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#0ea5e9" fill-opacity="0.3" d="M0,100 C240,160 480,40 720,100 C960,160 1200,40 1440,100 L1440,200 L0,200 Z"></path>
+    <path fill="#0284c7" fill-opacity="0.4" d="M0,130 C240,180 480,80 720,130 C960,180 1200,80 1440,130 L1440,200 L0,200 Z"></path>
+    <path fill="#0369a1" fill-opacity="0.5" d="M0,160 C240,200 480,120 720,160 C960,200 1200,120 1440,160 L1440,200 L0,200 Z"></path>
+  </svg>
+  <div class="container">
+    <h1>🎵 我的歌单</h1>
+
+    <!-- 登录/注册界面 -->
+    <div id="loginBox" style="display:none;">
+      <div class="box" style="max-width:460px;margin:40px auto;">
+        <h2 style="font-size:18px;margin-bottom:18px;text-align:center;">登录 / 注册</h2>
+        <div class="form-row">
+          <label>邮箱</label>
+          <input type="email" id="loginEmail" placeholder="输入邮箱" style="width:100%;">
+        </div>
+        <div class="form-row">
+          <label>密码（至少6位）</label>
+          <input type="password" id="loginPassword" placeholder="输入密码" style="width:100%;">
+        </div>
+        <button onclick="handleLogin()" style="width:100%;padding:12px;margin-top:10px;">登录</button>
+        <button onclick="handleSignup()" style="width:100%;padding:12px;margin-top:8px;background:#6c7ae0;">注册新账号</button>
+        <p class="msg" id="loginMsg"></p>
+      </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="mainBox" style="display:none;">
+      <div class="user-bar">
+        <span>👤 <span id="userEmail"></span></span>
+        <button onclick="handleLogout()">退出登录</button>
+      </div>
+
+      <div class="box">
+        <h2>📋 歌曲列表</h2>
+        <div class="toolbar">
+          <button class="add-btn" onclick="openAddModal()">➕ 添加歌曲</button>
+          <div class="search-wrap">
+            <span class="icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索歌名 / 歌手 / 种类 / 标签" oninput="renderSongs()">
+          </div>
+          <select id="genreFilter" onchange="renderSongs()">
+            <option value="">全部种类</option>
+          </select>
+          <button class="sort-btn" onclick="setSort('genre')" id="sortGenre">按种类</button>
+          <button class="sort-btn" onclick="setSort('singer')" id="sortSinger">按歌手</button>
+          <button class="sort-btn" onclick="setSort('genre_singer')" id="sortBoth">先种类后歌手</button>
+          <button class="export-btn" onclick="openExport()">🖼️ 导出图片</button>
+        </div>
+        <div id="songListContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑弹窗 -->
+  <div class="modal-mask" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">➕ 添加歌曲</h2>
+        <button class="close" onclick="closeAddModal()">×</button>
+      </div>
+
+      <div class="form-row">
+        <label>歌名 *</label>
+        <input type="text" id="songTitle" placeholder="输入歌名">
+      </div>
+
+      <div class="form-row">
+        <label>歌手 *（逐个添加）</label>
+        <div class="singer-list" id="singerList"></div>
+        <div class="singer-input-row">
+          <input type="text" id="singerInput" placeholder="输入歌手名" onkeydown="if(event.key==='Enter'){event.preventDefault();addSinger();}">
+          <button onclick="addSinger()">添加歌手</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>种类 *</label>
+        <input type="text" id="genreInput" placeholder="点击选择或自行输入" autocomplete="off"
+               onfocus="showGenreDropdown()" oninput="filterGenreDropdown()" onblur="setTimeout(hideGenreDropdown, 200)">
+        <div class="dropdown" id="genreDropdown">
+          <div class="dropdown-hint">可自行输入新种类</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>标签（按回车添加）</label>
+        <div class="tag-list" id="tagList"></div>
+        <input type="text" id="tagInput" placeholder="输入标签后按回车" onkeydown="handleTagKey(event)">
+      </div>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitSong()">保存歌曲</button>
+      <p class="msg" id="formMsg"></p>
+    </div>
+  </div>
+
+  <!-- 删除确认 -->
+  <div class="modal-mask" id="deleteModal">
+    <div class="modal small">
+      <div class="modal-header">
+        <h2>确认删除</h2>
+        <button class="close" onclick="closeDeleteModal()">×</button>
+      </div>
+      <p class="confirm-text" id="deleteText"></p>
+      <div class="confirm-actions">
+        <button class="cancel" onclick="closeDeleteModal()">取消</button>
+        <button class="danger" onclick="confirmDelete()">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出界面 -->
+  <div class="export-mask" id="exportMask">
+    <div class="export-panel">
+      <h3>导出设置</h3>
+
+      <div class="form-row">
+        <label>分组方式</label>
+        <select id="expGroupBy" onchange="refreshExportPreview()">
+          <option value="genre">按种类分组</option>
+          <option value="singer">按歌手分组</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>图片比例</label>
+        <select id="expRatio" onchange="refreshExportPreview()">
+          <option value="a4">A4 竖版（794 × 1123）</option>
+          <option value="16x9">16:9 横屏（1280 × 720）</option>
+        </select>
+      </div>
+
+      <h3 style="margin-top:20px;">样式</h3>
+
+      <div class="form-row">
+        <label>标题字号</label>
+        <input type="number" id="expTitleSize" value="29" min="12" max="80" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>标题颜色</label>
+        <input type="color" id="expTitleColor" value="#2c3e50" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>标题背景色（留空表示透明）</label>
+        <input type="text" id="expTitleBg" placeholder="如 #f0f0f0" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>歌名字号</label>
+        <input type="number" id="expSongSize" value="19" min="8" max="40" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>歌名颜色</label>
+        <input type="color" id="expSongColor" value="#333333" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>页面背景色</label>
+        <input type="color" id="expPageBg" value="#ffffff" oninput="refreshExportPreview()">
+      </div>
+
+      <div class="form-row">
+        <label>背景图（可选）</label>
+        <input type="file" id="expBgImage" accept="image/*" onchange="handleBgUpload(event)" style="width:100%;font-size:12px;">
+      </div>
+
+      <div class="form-row">
+        <label>背景显示模式</label>
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="bgModeStretch" onclick="setBgMode('stretch')" style="flex:1;padding:6px;font-size:12px;background:#5b8def;">填满页面</button>
+          <button type="button" id="bgModeOriginal" onclick="setBgMode('original')" style="flex:1;padding:6px;font-size:12px;background:#ccc;">原始比例</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>背景图缩放：<span id="bgScaleLabel">100%</span></label>
+        <input type="range" id="expBgScale" min="20" max="300" value="100" oninput="handleBgScale(this.value)" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <button type="button" onclick="clearBgImage()" style="background:#ccc;padding:6px 10px;font-size:12px;">清除背景</button>
+      </div>
+
+      <div class="export-actions">
+        <button class="secondary" onclick="closeExport()">取消</button>
+        <button class="primary" onclick="doExport()">导出</button>
+      </div>
+      <p class="msg" id="exportMsg"></p>
+      </div>
+
+    <div class="export-preview" id="exportPreview">
+      <div class="export-preview-topbar">
+        <button onclick="zoomPreview(-10)">－</button>
+        <input type="range" id="zoomSlider" min="20" max="200" value="100" oninput="setZoom(this.value)">
+        <button onclick="zoomPreview(10)">＋</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+      </div>
+      <div class="export-preview-info" id="previewInfo">预览</div>
+      <div class="export-viewport" id="exportViewport">
+        <div class="export-stage" id="exportStage">
+          <div id="previewContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zumer/snapdom@1/dist/snapdom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://zcgrjuajjfbcotgjftac.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjZ3JqdWFqamZiY290Z2pmdGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MjA5ODIsImV4cCI6MjEwNzE5Njk4Mn0.3C5exHyfmoTkSr1pfUlmK3-JnN2jkXkE9c20aHXcamw';
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { pinyin } = window.pinyinPro;
+
+    let currentUser = null;
+    let singers = [];
+    let tags = [];
+    let allGenres = [];
+    let allSongs = [];
+    let currentSort = '';
+    let editingId = null;
+    let pendingDeleteId = null;
+
+    const loginBox = document.getElementById('loginBox');
+    const mainBox = document.getElementById('mainBox');
+
+    // 每次打开强制登出
+    async function forceLogoutThenCheck() {
+      await sb.auth.signOut();
+      loginBox.style.display = 'block';
+      mainBox.style.display = 'none';
+    }
+    forceLogoutThenCheck();
+
+    // 登录
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const msg = document.getElementById('loginMsg');
+      if (!email || !password) { msg.textContent = '请填写邮箱和密码'; msg.className = 'msg error'; return; }
+      msg.textContent = '登录中...'; msg.className = 'msg';
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { msg.textContent = '❌ ' + error.message; msg.className = 'msg error'; return; }
+      msg.textContent = '';
+      // 登录成功后显示主界面
+      currentUser = (await sb.auth.getUser()).data.user;
+      document.getElementById('userEmail').textContent = currentUser.email;
+      loginBox.style.display = 'none';
+      mainBox.style.display = 'block';
+      await loadGenres();
+      await loadSongs();
+    }
+
+    // 注册
+    async function handleSignup() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const msg = document.getElementById('loginMsg');
+      if (!email || !password) { msg.textContent = '请填写邮箱和密码'; msg.className = 'msg error'; return; }
+      if (password.length < 6) { msg.textContent = '密码至少 6 位'; msg.className = 'msg error'; return; }
+      msg.textContent = '注册中...'; msg.className = 'msg';
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) { msg.textContent = '❌ ' + error.message; msg.className = 'msg error'; return; }
+      msg.textContent = '✅ 注册成功！请点“登录”'; msg.className = 'msg success';
+    }
+
+    async function handleLogout() {
+      await sb.auth.signOut();
+      loginBox.style.display = 'block';
+      mainBox.style.display = 'none';
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginMsg').textContent = '';
+    }
+
+    // ============ 加载数据 ============
+    async function loadGenres() {
+      const { data, error } = await sb.from('songs').select('genre').eq('user_id', currentUser.id);
+      if (error) return console.error(error);
+      const set = new Set(data.map(r => r.genre).filter(Boolean));
+      allGenres = Array.from(set).sort();
+      renderGenreDropdown();
+      renderGenreFilter();
+    }
+
+    function renderGenreFilter() {
+      const sel = document.getElementById('genreFilter');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">全部种类</option>' +
+        allGenres.map(g => `<option value="${g}">${g}</option>`).join('');
+      sel.value = cur;
+    }
+
+    async function loadSongs() {
+      const { data: songs, error } = await sb
+        .from('songs')
+        .select('id, title, genre, tags, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+      if (error) { console.error(error); return; }
+
+      const songIds = songs.map(s => s.id);
+      let singerMap = {};
+      if (songIds.length > 0) {
+        const { data: links } = await sb.from('song_singers').select('song_id, singer_id').in('song_id', songIds);
+        const singerIds = [...new Set((links || []).map(l => l.singer_id))];
+        let nameMap = {};
+        if (singerIds.length > 0) {
+          const { data: names } = await sb.from('singers').select('id, name').in('id', singerIds);
+          (names || []).forEach(n => nameMap[n.id] = n.name);
+        }
+        (links || []).forEach(l => {
+          if (!singerMap[l.song_id]) singerMap[l.song_id] = [];
+          if (nameMap[l.singer_id]) singerMap[l.song_id].push(nameMap[l.singer_id]);
+        });
+      }
+
+      allSongs = songs.map(s => ({ ...s, singers: singerMap[s.id] || [] }));
+      renderSongs();
+    }
+
+    // ============ 列表渲染 + 排序 ============
+    function setSort(type) {
+      currentSort = (currentSort === type) ? '' : type;
+      ['sortGenre','sortSinger','sortBoth'].forEach(id => document.getElementById(id).classList.remove('active'));
+      if (currentSort === 'genre') document.getElementById('sortGenre').classList.add('active');
+      if (currentSort === 'singer') document.getElementById('sortSinger').classList.add('active');
+      if (currentSort === 'genre_singer') document.getElementById('sortBoth').classList.add('active');
+      renderSongs();
+    }
+
+    function matchScore(song, kw) {
+      if (!kw) return 1;
+      const k = kw.toLowerCase();
+      let score = 0;
+      if (song.title.toLowerCase().includes(k)) score += 3;
+      if (song.singers.some(s => s.toLowerCase().includes(k))) score += 2;
+      if (song.genre && song.genre.toLowerCase().includes(k)) score += 1;
+      if (song.tags && song.tags.some(t => t.toLowerCase().includes(k))) score += 1;
+      return score;
+    }
+
+    function renderSongs() {
+      const kw = document.getElementById('searchInput').value.trim();
+      const genreFilter = document.getElementById('genreFilter').value;
+      let list = allSongs.filter(s => {
+        if (genreFilter && s.genre !== genreFilter) return false;
+        if (kw && matchScore(s, kw) === 0) return false;
+        return true;
+      });
+
+      if (currentSort === 'genre') {
+        list.sort((a, b) => (a.genre || '').localeCompare(b.genre || '', 'zh'));
+      } else if (currentSort === 'singer') {
+        list.sort((a, b) => (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh'));
+      } else if (currentSort === 'genre_singer') {
+        list.sort((a, b) => {
+          const g = (a.genre || '').localeCompare(b.genre || '', 'zh');
+          if (g !== 0) return g;
+          return (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh');
+        });
+      } else if (kw) {
+        list.sort((a, b) => matchScore(b, kw) - matchScore(a, kw));
+      }
+
+      const container = document.getElementById('songListContainer');
+      if (list.length === 0) {
+        container.innerHTML = '<div class="empty">没有找到歌曲</div>';
+        return;
+      }
+      const rows = list.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.title)}</strong></td>
+          <td>${s.singers.map(x => escapeHtml(x)).join(' / ')}</td>
+          <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
+          <td style="white-space:nowrap;">
+            <button class="op-btn edit" onclick="openEditModal('${s.id}')">✏️ 编辑</button>
+            <button class="op-btn del" onclick="openDeleteModal('${s.id}')">🗑️ 删除</button>
+          </td>
+        </tr>
+      `).join('');
+
+      container.innerHTML = `
+        <table class="song-table">
+          <thead><tr><th>歌名</th><th>歌手</th><th>种类</th><th style="width:180px;">操作</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[c]);
+    }
+
+    // ============ 弹窗 ============
+    function openAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = '➕ 添加歌曲';
+      document.getElementById('submitBtn').textContent = '保存歌曲';
+      document.getElementById('songTitle').value = '';
+      singers = []; tags = [];
+      document.getElementById('genreInput').value = '';
+      document.getElementById('formMsg').textContent = '';
+      renderSingers(); renderTags();
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    async function openEditModal(songId) {
+      editingId = songId;
+      const song = allSongs.find(s => s.id === songId);
+      if (!song) return;
+      document.getElementById('modalTitle').textContent = '✏️ 编辑歌曲';
+      document.getElementById('submitBtn').textContent = '保存修改';
+      document.getElementById('songTitle').value = song.title;
+      document.getElementById('genreInput').value = song.genre || '';
+      singers = [...song.singers];
+      tags = [...(song.tags || [])];
+      renderSingers(); renderTags();
+      document.getElementById('formMsg').textContent = '';
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+      document.getElementById('formMsg').textContent = '';
+      editingId = null;
+    }
+
+    function openDeleteModal(songId) {
+      const song = allSongs.find(s => s.id === songId);
+      if (!song) return;
+      pendingDeleteId = songId;
+      document.getElementById('deleteText').textContent = `确定要删除《${song.title}》吗？此操作不可恢复。`;
+      document.getElementById('deleteModal').classList.add('show');
+    }
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('show');
+      pendingDeleteId = null;
+    }
+    async function confirmDelete() {
+      if (!pendingDeleteId) return;
+      const { error } = await sb.from('songs').delete().eq('id', pendingDeleteId);
+      if (error) { alert('删除失败：' + error.message); return; }
+      closeDeleteModal();
+      await loadGenres();
+      await loadSongs();
+    }
+
+    // ============ 种类下拉 ============
+    const genreDropdown = document.getElementById('genreDropdown');
+    const genreInput = document.getElementById('genreInput');
+    function renderGenreDropdown(filter) {
+      const list = filter ? allGenres.filter(g => g.includes(filter)) : allGenres;
+      genreDropdown.innerHTML = '<div class="dropdown-hint">可自行输入新种类</div>' +
+        list.map(g => `<div class="dropdown-item" onmousedown="selectGenre('${g.replace(/'/g, "\\'")}')">${escapeHtml(g)}</div>`).join('');
+    }
+    function showGenreDropdown() { renderGenreDropdown(genreInput.value.trim()); genreDropdown.classList.add('show'); }
+    function filterGenreDropdown() { renderGenreDropdown(genreInput.value.trim()); genreDropdown.classList.add('show'); }
+    function hideGenreDropdown() { genreDropdown.classList.remove('show'); }
+    function selectGenre(g) { genreInput.value = g; hideGenreDropdown(); }
+
+    // ============ 歌手 ============
+    const singerListEl = document.getElementById('singerList');
+    const singerInputEl = document.getElementById('singerInput');
+    function addSinger() {
+      const name = singerInputEl.value.trim();
+      if (!name) return;
+      if (singers.includes(name)) { singerInputEl.value = ''; return; }
+      if (singers.length >= 200) { alert('歌手数量已达上限 200'); return; }
+      singers.push(name);
+      singerInputEl.value = '';
+      renderSingers();
+    }
+    function removeSinger(i) { singers.splice(i, 1); renderSingers(); }
+    function renderSingers() {
+      singerListEl.innerHTML = singers.map((s, i) =>
+        `<span class="singer-tag">${escapeHtml(s)}<span class="remove" onclick="removeSinger(${i})">×</span></span>`
+      ).join('');
+    }
+
+    // ============ 标签 ============
+    const tagListEl = document.getElementById('tagList');
+    const tagInputEl = document.getElementById('tagInput');
+    function handleTagKey(e) {
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); }
+    }
+    function addTag() {
+      const val = tagInputEl.value.trim().replace(/,$/, '');
+      if (!val) return;
+      if (!tags.includes(val)) { tags.push(val); renderTags(); }
+      tagInputEl.value = '';
+    }
+    function removeTag(i) { tags.splice(i, 1); renderTags(); }
+    function renderTags() {
+      tagListEl.innerHTML = tags.map((t, i) =>
+        `<span class="tag">${escapeHtml(t)}<span class="remove" onclick="removeTag(${i})">×</span></span>`
+      ).join('');
+    }
+
+    // ============ 提交 ============
+    const formMsg = document.getElementById('formMsg');
+    function showFormMsg(text, type) {
+      formMsg.textContent = text;
+      formMsg.className = 'msg ' + (type || '');
+    }
+
+    async function submitSong() {
+      const title = document.getElementById('songTitle').value.trim();
+      const genre = genreInput.value.trim();
+      if (!title) return showFormMsg('❌ 请填写歌名', 'error');
+      if (singers.length === 0) return showFormMsg('❌ 请至少添加一个歌手', 'error');
+      if (!genre) return showFormMsg('❌ 请填写种类', 'error');
+      showFormMsg('保存中...');
+
+      if (editingId) {
+        const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
+        if (upErr) return showFormMsg('❌ ' + upErr.message, 'error');
+        const { error: delErr } = await sb.from('song_singers').delete().eq('song_id', editingId);
+        if (delErr) return showFormMsg('❌ 清除旧歌手失败：' + delErr.message, 'error');
+        for (const name of singers) {
+          const singerId = await ensureSinger(name);
+          if (!singerId) return showFormMsg('❌ 添加歌手失败：' + name, 'error');
+          const { error: linkErr } = await sb.from('song_singers').insert({ song_id: editingId, singer_id: singerId });
+          if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
+        }
+        showFormMsg('✅ 修改成功！', 'success');
+      } else {
+        const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
+        if (songErr) return showFormMsg('❌ ' + songErr.message, 'error');
+        for (const name of singers) {
+          const singerId = await ensureSinger(name);
+          if (!singerId) return showFormMsg('❌ 添加歌手失败：' + name, 'error');
+          const { error: linkErr } = await sb.from('song_singers').insert({ song_id: songData.id, singer_id: singerId });
+          if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
+        }
+        showFormMsg('✅ 保存成功！', 'success');
+      }
+
+      await loadGenres();
+      await loadSongs();
+      setTimeout(() => closeAddModal(), 600);
+    }
+
+    async function ensureSinger(name) {
+      const { data: exist } = await sb.from('singers').select('id').eq('name', name).maybeSingle();
+      if (exist) return exist.id;
+      const { data: inserted, error } = await sb.from('singers').insert({ name }).select().single();
+      if (error) {
+        const { data: retry } = await sb.from('singers').select('id').eq('name', name).maybeSingle();
+        return retry ? retry.id : null;
+      }
+      return inserted.id;
+    }
+
+    // ============ 导出功能 ============
+    let previewScale = 100;
+    let currentPages = null;
+    let currentSize = null;
+    let currentPadding = null;
+
+    let bgImageData = null;   // 背景图的 dataURL
+    let bgNaturalW = 0;
+    let bgNaturalH = 0;
+    let bgScale = 100;        // 背景图缩放百分比
+    let bgOffset = { x: 0, y: 0 };  // 背景图偏移
+    let bgMode = 'stretch';  // stretch=填满页面（拉伸），original=原始比例
+
+    function setBgMode(mode) {
+      bgMode = mode;
+      document.getElementById('bgModeStretch').style.background = (mode === 'stretch') ? '#5b8def' : '#ccc';
+      document.getElementById('bgModeOriginal').style.background = (mode === 'original') ? '#5b8def' : '#ccc';
+      refreshExportPreview();
+    }
+
+    function handleBgUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        bgImageData = ev.target.result;
+        bgScale = 100;
+        bgOffset = { x: 0, y: 0 };
+        // 异步获取原图尺寸，失败也不影响
+        const img = new Image();
+        img.onload = () => {
+          bgNaturalW = img.naturalWidth;
+          bgNaturalH = img.naturalHeight;
+          refreshExportPreview();
+        };
+        img.onerror = () => {
+          bgNaturalW = 800;
+          bgNaturalH = 600;
+          refreshExportPreview();
+        };
+        img.src = ev.target.result;
+        // 先刷新一次，图片能立刻显示
+        bgNaturalW = 800;   // 默认兜底
+        bgNaturalH = 600;
+        document.getElementById('bgScaleLabel').textContent = '100%';
+        document.getElementById('expBgScale').value = 100;
+        refreshExportPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleBgScale(val) {
+      bgScale = parseInt(val, 10);
+      document.getElementById('bgScaleLabel').textContent = bgScale + '%';
+      refreshExportPreview();
+    }
+
+    function clearBgImage() {
+      bgImageData = null;
+      bgScale = 100;
+      bgOffset = { x: 0, y: 0 };
+      document.getElementById('expBgImage').value = '';
+      document.getElementById('bgScaleLabel').textContent = '100%';
+      document.getElementById('expBgScale').value = 100;
+      refreshExportPreview();
+    }
+
+    function openExport() {
+      if (allSongs.length === 0) {
+        alert('没有歌曲可以导出');
+        return;
+      }
+      document.getElementById('exportMask').classList.add('show');
+      previewScale = 100;
+      document.getElementById('zoomSlider').value = 100;
+      document.getElementById('zoomLabel').textContent = '100%';
+      refreshExportPreview();
+    }
+
+    function closeExport() {
+      document.getElementById('exportMask').classList.remove('show');
+    }
+
+    function pinyinKey(str) {
+      try {
+        return pinyin(str, { toneType: 'none', type: 'array' }).join('');
+      } catch (e) {
+        return str;
+      }
+    }
+
+    function sortByLengthAndPinyin(titles) {
+      return [...titles].sort((a, b) => {
+        const la = a.length, lb = b.length;
+        if (la !== lb) return la - lb;
+        return pinyinKey(a).localeCompare(pinyinKey(b));
+      });
+    }
+
+    function buildGroups() {
+      const groupBy = document.getElementById('expGroupBy').value;
+      const groups = {};
+
+      if (groupBy === 'genre') {
+        allSongs.forEach(s => {
+          const g = s.genre || '未分类';
+          if (!groups[g]) groups[g] = [];
+          groups[g].push(s.title);
+        });
+      } else {
+        const choirSongs = [];
+        allSongs.forEach(s => {
+          const singersList = s.singers || [];
+          if (singersList.length > 5) {
+            choirSongs.push(s.title);
+          } else if (singersList.length === 0) {
+            if (!groups['未知歌手']) groups['未知歌手'] = [];
+            groups['未知歌手'].push(s.title);
+          } else {
+            singersList.forEach(name => {
+              if (!groups[name]) groups[name] = [];
+              groups[name].push(s.title);
+            });
+          }
+        });
+        if (choirSongs.length > 0) groups['合唱'] = choirSongs;
+      }
+
+      Object.keys(groups).forEach(k => {
+        groups[k] = sortByLengthAndPinyin(groups[k]);
+      });
+      return groups;
+    }
+
+    function paginate(groups, ratio) {
+      const size = ratio === 'a4' ? { w: 794, h: 1123 } : { w: 1280, h: 720 };
+      const padding = ratio === 'a4'
+        ? { top: 96, bottom: 96, left: 120, right: 120 }
+        : { top: 61, bottom: 61, left: 76, right: 76 };
+
+      const pages = [];
+      let current = { groups: [], estHeight: 0 };
+
+      const maxHeight = size.h - padding.top - padding.bottom;
+      const innerWidth = size.w - padding.left - padding.right;
+
+      const songSize = 19;
+      const titleSize = 29;
+      const lineHeight = songSize * 1.8;
+      const titleHeight = titleSize * 1.4 + 8;
+      const titleMargin = 14;
+      const indent = 30;
+
+      const songWidthAvg = songSize * 3.8;
+      const songsPerRow = Math.max(3, Math.floor((innerWidth - indent) / songWidthAvg));
+
+      Object.keys(groups).forEach(groupName => {
+        let songsLeft = [...groups[groupName]];
+        let firstChunk = true;
+
+        while (songsLeft.length > 0) {
+          const tHeight = firstChunk ? titleHeight : titleHeight * 0.6;
+          const usedH = current.estHeight;
+          const avail = maxHeight - usedH - tHeight - titleMargin;
+
+          if (avail < lineHeight && current.groups.length > 0) {
+            pages.push(current);
+            current = { groups: [], estHeight: 0 };
+            continue;
+          }
+
+          const availRows = Math.max(1, Math.floor(avail / lineHeight));
+          const chunkSize = availRows * songsPerRow;
+          const chunk = songsLeft.splice(0, chunkSize);
+
+          current.groups.push({
+            name: groupName,
+            songs: chunk,
+            isContinuation: !firstChunk
+          });
+
+          const rowsUsed = Math.ceil(chunk.length / songsPerRow);
+          current.estHeight += tHeight + titleMargin + rowsUsed * lineHeight;
+          firstChunk = false;
+
+          if (songsLeft.length > 0) {
+            pages.push(current);
+            current = { groups: [], estHeight: 0 };
+          }
+        }
+      });
+
+      if (current.groups.length > 0) pages.push(current);
+      return { pages, size, padding };
+    }
+
+    function renderPageHTML(pageData, size, padding) {
+      const titleSize = document.getElementById('expTitleSize').value;
+      const titleColor = document.getElementById('expTitleColor').value;
+      const titleBg = document.getElementById('expTitleBg').value.trim();
+      const songSize = document.getElementById('expSongSize').value;
+      const songColor = document.getElementById('expSongColor').value;
+      const pageBg = document.getElementById('expPageBg').value;
+
+      const groupsHTML = pageData.groups.map(g => {
+        const songsHTML = g.songs.map(t => `<span class="song-name">${escapeHtml(t)}</span>`).join('');
+        return `
+          <div class="page-group">
+            <div class="page-title" style="
+              font-size:${titleSize}px;
+              color:${titleColor};
+              ${titleBg ? 'background:' + titleBg + ';padding:4px 12px;border-radius:6px;display:inline-block;' : ''}
+            ">${escapeHtml(g.name)}${g.isContinuation ? '（续）' : ''}</div>
+            <div class="page-songs" style="font-size:${songSize}px;color:${songColor};">
+              ${songsHTML}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      let bgHTML = '';
+      if (bgImageData) {
+        let bgW, bgH, left, top, objectFit;
+        if (bgMode === 'stretch') {
+          // 填满页面：拉伸到页面尺寸，比例变形
+          bgW = size.w;
+          bgH = size.h;
+          left = 0;
+          top = 0;
+          objectFit = 'fill';
+        } else {
+          // 原始比例：图片原始大小 × 缩放，可拖动
+          bgW = bgNaturalW * (bgScale / 100);
+          bgH = bgNaturalH * (bgScale / 100);
+          left = (size.w - bgW) / 2 + bgOffset.x;
+          top = (size.h - bgH) / 2 + bgOffset.y;
+          objectFit = 'fill';  // 不裁剪，按指定宽高显示（因为宽高本身按原图比例算，不变形）
+        }
+        bgHTML = `<img src="${bgImageData}" style="
+          position:absolute;left:${left}px;top:${top}px;
+          width:${bgW}px;height:${bgH}px;
+          object-fit:${objectFit};
+          pointer-events:none;z-index:0;
+        ">`;
+      }
+
+      return `
+        <div class="page-canvas" style="
+          width:${size.w}px;height:${size.h}px;background:${pageBg};
+        ">
+          ${bgHTML}
+          <div class="page-content" style="
+            position:relative;z-index:1;
+            padding:${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px;
+          ">${groupsHTML}</div>
+        </div>
+      `;
+    }
+
+    function refreshExportPreview() {
+      const groups = buildGroups();
+      const ratio = document.getElementById('expRatio').value;
+      const { pages, size, padding } = paginate(groups, ratio);
+      currentPages = pages;
+      currentSize = size;
+      currentPadding = padding;
+
+      const container = document.getElementById('previewContainer');
+      const info = document.getElementById('previewInfo');
+
+      if (pages.length === 0) {
+        container.innerHTML = '<div style="color:#aaa;padding:40px;">没有内容</div>';
+        info.textContent = '无内容';
+        return;
+      }
+
+      container.innerHTML = renderPageHTML(pages[0], size, padding);
+      info.textContent = `共 ${pages.length} 页（预览第 1 页）`;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const canvas = document.querySelector('#previewContainer .page-canvas');
+      if (!canvas) return;
+      const scale = previewScale / 100;
+      canvas.style.transform = `scale(${scale})`;
+      canvas.style.marginBottom = `${(currentSize.h * scale) - currentSize.h}px`;
+      canvas.style.marginRight = `${(currentSize.w * scale) - currentSize.w}px`;
+    }
+
+    function setZoom(val) {
+      previewScale = parseInt(val, 10);
+      document.getElementById('zoomSlider').value = previewScale;
+      document.getElementById('zoomLabel').textContent = previewScale + '%';
+      applyZoom();
+    }
+
+    function zoomPreview(delta) {
+      let v = previewScale + delta;
+      v = Math.max(20, Math.min(200, v));
+      setZoom(v);
+    }
+
+    // 拖拽预览（有背景图时拖动背景图，没背景图时拖动视口）
+    (function initDrag() {
+      const viewport = document.getElementById('exportViewport');
+      if (!viewport) return;
+      let isDown = false, startX = 0, startY = 0, startLeft = 0, startTop = 0, startOffset = null;
+      viewport.addEventListener('mousedown', e => {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        isDown = true;
+        viewport.classList.add('dragging');
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = viewport.scrollLeft;
+        startTop = viewport.scrollTop;
+        startOffset = { x: bgOffset.x, y: bgOffset.y };
+      });
+      window.addEventListener('mousemove', e => {
+        if (!isDown) return;
+        // 如果有背景图且是原始比例模式，拖动背景图
+        if (bgImageData && bgMode === 'original') {
+          const scale = previewScale / 100;
+          bgOffset.x = startOffset.x + (e.clientX - startX) / scale;
+          bgOffset.y = startOffset.y + (e.clientY - startY) / scale;
+          refreshExportPreview();
+        } else {
+          viewport.scrollLeft = startLeft - (e.clientX - startX);
+          viewport.scrollTop = startTop - (e.clientY - startY);
+        }
+      });
+      window.addEventListener('mouseup', () => {
+        isDown = false;
+        viewport.classList.remove('dragging');
+      });
+    })();
+
+    async function doExport() {
+      if (!currentPages || currentPages.length === 0) return;
+      const msg = document.getElementById('exportMsg');
+      msg.textContent = '正在导出...';
+      msg.className = 'msg';
+
+      const hideWrap = document.createElement('div');
+      hideWrap.style.cssText = 'position:fixed;left:-99999px;top:0;';
+      document.body.appendChild(hideWrap);
+
+      const zip = new JSZip();
+
+      for (let i = 0; i < currentPages.length; i++) {
+        hideWrap.innerHTML = renderPageHTML(currentPages[i], currentSize, currentPadding);
+        const canvasEl = hideWrap.querySelector('.page-canvas');
+        canvasEl.style.transform = 'none';
+        try {
+          const result = await window.snapdom.snapdom(canvasEl, { scale: 2 });
+          const blob = await result.toBlob();
+          zip.file('歌单' + (i + 1) + '.png', blob);
+        } catch (e) {
+          console.error('导出第 ' + (i + 1) + ' 页失败', e);
+        }
+      }
+
+      hideWrap.remove();
+
+      try {
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '歌单.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        msg.textContent = '✅ 导出完成，共 ' + currentPages.length + ' 张，已打包成 歌单.zip';
+        msg.className = 'msg success';
+      } catch (e) {
+        console.error('打包失败', e);
+        msg.textContent = '❌ 打包失败：' + e.message;
+        msg.className = 'msg error';
+      }
+    }
+  </script>
+</body>
+</html>
