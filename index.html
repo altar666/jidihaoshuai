@@ -1494,11 +1494,11 @@
         const canvasEl = hideWrap.querySelector('.page-canvas');
         canvasEl.style.transform = 'none';
         try {
-          const result = await window.snapdom.snapdom(canvasEl, { scale: 2 });
+          const result = await window.snapdom(canvasEl, { scale: 2 });
           const blob = await result.toBlob();
           zip.file('歌单' + (i + 1) + '.png', blob);
         } catch (e) {
-          console.error('导出第 ' + (i + 1) + ' 页失败', e);
+          console.error('导出第 ' + (i + 1) + ' 页失败 ', e);
         }
       }
 
