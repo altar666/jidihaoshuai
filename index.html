@@ -751,6 +751,10 @@
         <input type="range" id="zoomSlider" min="20" max="200" value="100" oninput="setZoom(this.value)">
         <button onclick="zoomPreview(10)">＋</button>
         <span class="zoom-label" id="zoomLabel">100%</span>
+        <span style="margin-left:16px;">|</span>
+        <button onclick="prevPreviewPage()">◀</button>
+        <span id="pageIndicator" style="min-width:80px;text-align:center;">1 / 1</span>
+        <button onclick="nextPreviewPage()">▶</button>
       </div>
       <div class="export-preview-info" id="previewInfo">预览</div>
       <div class="export-viewport" id="exportViewport">
@@ -1119,6 +1123,7 @@
     let currentPages = null;
     let currentSize = null;
     let currentPadding = null;
+    let currentPreviewPage = 0;
 
     let bgImageData = null;   // 背景图的 dataURL
     let bgNaturalW = 0;
@@ -1257,12 +1262,12 @@
       const pages = [];
       let current = { groups: [], estHeight: 0 };
 
-      const maxHeight = size.h - padding.top - padding.bottom;
+      const maxHeight = size.h - padding.top - padding.bottom - 40; // 额外留 40px 底部安全区
       const innerWidth = size.w - padding.left - padding.right;
 
       const songSize = 19;
       const titleSize = 29;
-      const lineHeight = songSize * 1.8;
+      const lineHeight = songSize * 2.2;
       const titleHeight = titleSize * 1.4 + 8;
       const titleMargin = 14;
       const indent = 30;
@@ -1380,19 +1385,40 @@
       currentPages = pages;
       currentSize = size;
       currentPadding = padding;
+      currentPreviewPage = 0;
 
+      renderCurrentPreviewPage();
+    }
+
+    function renderCurrentPreviewPage() {
       const container = document.getElementById('previewContainer');
       const info = document.getElementById('previewInfo');
+      const indicator = document.getElementById('pageIndicator');
 
-      if (pages.length === 0) {
+      if (!currentPages || currentPages.length === 0) {
         container.innerHTML = '<div style="color:#aaa;padding:40px;">没有内容</div>';
         info.textContent = '无内容';
+        if (indicator) indicator.textContent = '0 / 0';
         return;
       }
 
-      container.innerHTML = renderPageHTML(pages[0], size, padding);
-      info.textContent = `共 ${pages.length} 页（预览第 1 页）`;
+      const i = currentPreviewPage;
+      container.innerHTML = renderPageHTML(currentPages[i], currentSize, currentPadding);
+      info.textContent = `共 ${currentPages.length} 页（预览第 ${i + 1} 页）`;
+      if (indicator) indicator.textContent = `${i + 1} / ${currentPages.length}`;
       applyZoom();
+    }
+
+    function prevPreviewPage() {
+      if (!currentPages || currentPages.length === 0) return;
+      currentPreviewPage = (currentPreviewPage - 1 + currentPages.length) % currentPages.length;
+      renderCurrentPreviewPage();
+    }
+
+    function nextPreviewPage() {
+      if (!currentPages || currentPages.length === 0) return;
+      currentPreviewPage = (currentPreviewPage + 1) % currentPages.length;
+      renderCurrentPreviewPage();
     }
 
     function applyZoom() {
