@@ -1144,29 +1144,24 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
-        bgImageData = ev.target.result;
-        bgScale = 100;
-        bgOffset = { x: 0, y: 0 };
-        // 异步获取原图尺寸，失败也不影响
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
+          // 用 canvas 转一次，让图片变成同源
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth;
+          c.height = img.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          bgImageData = c.toDataURL('image/png');  // 同源 base64
           bgNaturalW = img.naturalWidth;
           bgNaturalH = img.naturalHeight;
-          refreshExportPreview();
-        };
-        img.onerror = () => {
-          bgNaturalW = 800;
-          bgNaturalH = 600;
+          bgScale = 100;
+          bgOffset = { x: 0, y: 0 };
+          document.getElementById('bgScaleLabel').textContent = '100%';
+          document.getElementById('expBgScale').value = 100;
           refreshExportPreview();
         };
         img.src = ev.target.result;
-        // 先刷新一次，图片能立刻显示
-        bgNaturalW = 800;   // 默认兜底
-        bgNaturalH = 600;
-        document.getElementById('bgScaleLabel').textContent = '100%';
-        document.getElementById('expBgScale').value = 100;
-        refreshExportPreview();
       };
       reader.readAsDataURL(file);
     }
