@@ -1149,6 +1149,7 @@
         bgOffset = { x: 0, y: 0 };
         // 异步获取原图尺寸，失败也不影响
         const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
           bgNaturalW = img.naturalWidth;
           bgNaturalH = img.naturalHeight;
