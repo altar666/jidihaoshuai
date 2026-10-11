@@ -767,7 +767,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@zumer/snapdom@1/dist/snapdom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://zcgrjuajjfbcotgjftac.supabase.co';
@@ -1486,30 +1486,19 @@
       const zip = new JSZip();
 
       for (let i = 0; i < currentPages.length; i++) {
+        msg.textContent = '正在导出第 ' + (i + 1) + ' / ' + currentPages.length + ' 页...';
         hideWrap.innerHTML = renderPageHTML(currentPages[i], currentSize, currentPadding);
         const canvasEl = hideWrap.querySelector('.page-canvas');
         canvasEl.style.transform = 'none';
         try {
-          const result = await window.snapdom(canvasEl, { scale: 2 });
-          const rawBlob = await result.toBlob();
-
-          // 把 SVG 画到 canvas，再输出标准 PNG
-          const img = new Image();
-          const url = URL.createObjectURL(rawBlob);
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = url;
+          const canvasOut = await window.html2canvas(canvasEl, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null
           });
-          const canvas2 = document.createElement('canvas');
-          canvas2.width = img.naturalWidth;
-          canvas2.height = img.naturalHeight;
-          const ctx = canvas2.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-
-          const stdBlob = await new Promise(resolve => canvas2.toBlob(resolve, 'image/png'));
-          zip.file('歌单' + (i + 1) + '.png', stdBlob);
+          const blob = await new Promise(resolve => canvasOut.toBlob(resolve, 'image/png'));
+          zip.file('歌单' + (i + 1) + '.png', blob);
         } catch (e) {
           console.error('导出第 ' + (i + 1) + ' 页失败', e);
         }
