@@ -1495,10 +1495,27 @@
         canvasEl.style.transform = 'none';
         try {
           const result = await window.snapdom(canvasEl, { scale: 2 });
-          const blob = await result.toBlob();
-          zip.file('歌单' + (i + 1) + '.png', blob);
+          const rawBlob = await result.toBlob();
+
+          // 把 SVG 画到 canvas，再输出标准 PNG
+          const img = new Image();
+          const url = URL.createObjectURL(rawBlob);
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+          });
+          const canvas2 = document.createElement('canvas');
+          canvas2.width = img.naturalWidth;
+          canvas2.height = img.naturalHeight;
+          const ctx = canvas2.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+
+          const stdBlob = await new Promise(resolve => canvas2.toBlob(resolve, 'image/png'));
+          zip.file('歌单' + (i + 1) + '.png', stdBlob);
         } catch (e) {
-          console.error('导出第 ' + (i + 1) + ' 页失败 ', e);
+          console.error('导出第 ' + (i + 1) + ' 页失败', e);
         }
       }
 
