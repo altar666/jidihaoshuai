@@ -1078,33 +1078,65 @@
       if (!genre) return showFormMsg('❌ 请填写种类', 'error');
       showFormMsg('保存中...');
 
+      // 先把歌手批量查出来，避免逐个查询
+      let singerIdMap = {};
+      if (singers.length > 0) {
+        const { data: existing } = await sb
+          .from('singers')
+          .select('id, name')
+          .in('name', singers);
+        (existing || []).forEach(s => singerIdMap[s.name] = s.id);
+      }
+
+      // 新建还没存在的歌手（批量）
+      const newSingers = singers.filter(name => !singerIdMap[name]);
+      if (newSingers.length > 0) {
+        const { data: inserted, error: insErr } = await sb
+          .from('singers')
+          .insert(newSingers.map(name => ({ name })))
+          .select('id, name');
+        if (insErr) {
+          // 并发冲突时兜底：再查一次
+          const { data: retry } = await sb.from('singers').select('id, name').in('name', newSingers);
+          (retry || []).forEach(s => singerIdMap[s.name] = s.id);
+        } else {
+          (inserted || []).forEach(s => singerIdMap[s.name] = s.id);
+        }
+      }
+
       if (editingId) {
+        // ===== 编辑模式 =====
         const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
         if (upErr) return showFormMsg('❌ ' + upErr.message, 'error');
-        const { error: delErr } = await sb.from('song_singers').delete().eq('song_id', editingId);
-        if (delErr) return showFormMsg('❌ 清除旧歌手失败：' + delErr.message, 'error');
-        for (const name of singers) {
-          const singerId = await ensureSinger(name);
-          if (!singerId) return showFormMsg('❌ 添加歌手失败：' + name, 'error');
-          const { error: linkErr } = await sb.from('song_singers').insert({ song_id: editingId, singer_id: singerId });
+
+        await sb.from('song_singers').delete().eq('song_id', editingId);
+
+        const links = singers.map(name => ({ song_id: editingId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+        if (links.length > 0) {
+          const { error: linkErr } = await sb.from('song_singers').insert(links);
           if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
         }
         showFormMsg('✅ 修改成功！', 'success');
       } else {
-        const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
+        // ===== 添加模式 =====
+        const { data: songData, error: songErr } = await sb
+          .from('songs')
+          .insert({ user_id: currentUser.id, title, genre, tags })
+          .select().single();
         if (songErr) return showFormMsg('❌ ' + songErr.message, 'error');
-        for (const name of singers) {
-          const singerId = await ensureSinger(name);
-          if (!singerId) return showFormMsg('❌ 添加歌手失败：' + name, 'error');
-          const { error: linkErr } = await sb.from('song_singers').insert({ song_id: songData.id, singer_id: singerId });
+
+        const links = singers.map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+        if (links.length > 0) {
+          const { error: linkErr } = await sb.from('song_singers').insert(links);
           if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
         }
         showFormMsg('✅ 保存成功！', 'success');
       }
 
-      await loadGenres();
-      await loadSongs();
-      setTimeout(() => closeAddModal(), 600);
+      // 先关弹窗，再后台刷新
+      closeAddModal();
+      loadGenres();
+      loadSongs();
     }
 
     async function ensureSinger(name) {
