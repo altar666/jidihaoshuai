@@ -1076,67 +1076,76 @@
       if (!title) return showFormMsg('❌ 请填写歌名', 'error');
       if (singers.length === 0) return showFormMsg('❌ 请至少添加一个歌手', 'error');
       if (!genre) return showFormMsg('❌ 请填写种类', 'error');
-      showFormMsg('保存中...');
 
-      // 先把歌手批量查出来，避免逐个查询
-      let singerIdMap = {};
-      if (singers.length > 0) {
-        const { data: existing } = await sb
-          .from('singers')
-          .select('id, name')
-          .in('name', singers);
-        (existing || []).forEach(s => singerIdMap[s.name] = s.id);
-      }
+      // 1. 先备份当前状态（用于失败回滚）
+      const isEditing = !!editingId;
+      const backupSongs = [...allSongs];
 
-      // 新建还没存在的歌手（批量）
-      const newSingers = singers.filter(name => !singerIdMap[name]);
-      if (newSingers.length > 0) {
-        const { data: inserted, error: insErr } = await sb
-          .from('singers')
-          .insert(newSingers.map(name => ({ name })))
-          .select('id, name');
-        if (insErr) {
-          // 并发冲突时兜底：再查一次
-          const { data: retry } = await sb.from('singers').select('id, name').in('name', newSingers);
-          (retry || []).forEach(s => singerIdMap[s.name] = s.id);
-        } else {
-          (inserted || []).forEach(s => singerIdMap[s.name] = s.id);
+      // 2. 乐观更新：立刻在本地界面显示
+      if (isEditing) {
+        const idx = allSongs.findIndex(s => s.id === editingId);
+        if (idx > -1) {
+          allSongs[idx] = { ...allSongs[idx], title, genre, tags, singers: [...singers] };
         }
-      }
-
-      if (editingId) {
-        // ===== 编辑模式 =====
-        const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
-        if (upErr) return showFormMsg('❌ ' + upErr.message, 'error');
-
-        await sb.from('song_singers').delete().eq('song_id', editingId);
-
-        const links = singers.map(name => ({ song_id: editingId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
-        if (links.length > 0) {
-          const { error: linkErr } = await sb.from('song_singers').insert(links);
-          if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
-        }
-        showFormMsg('✅ 修改成功！', 'success');
       } else {
-        // ===== 添加模式 =====
-        const { data: songData, error: songErr } = await sb
-          .from('songs')
-          .insert({ user_id: currentUser.id, title, genre, tags })
-          .select().single();
-        if (songErr) return showFormMsg('❌ ' + songErr.message, 'error');
-
-        const links = singers.map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
-        if (links.length > 0) {
-          const { error: linkErr } = await sb.from('song_singers').insert(links);
-          if (linkErr) return showFormMsg('❌ 关联歌手失败：' + linkErr.message, 'error');
-        }
-        showFormMsg('✅ 保存成功！', 'success');
+        allSongs.unshift({
+          id: 'temp_' + Date.now(), // 临时 ID
+          title, genre, tags, singers: [...singers],
+          created_at: new Date().toISOString()
+        });
       }
 
-      // 先关弹窗，再后台刷新
+      // 立刻渲染列表，并关闭弹窗
+      renderSongs();
       closeAddModal();
-      loadGenres();
-      loadSongs();
+
+      // 3. 后台慢慢发网络请求
+      try {
+        let singerIdMap = {};
+        if (singers.length > 0) {
+          const { data: existing } = await sb.from('singers').select('id, name').in('name', singers);
+          (existing || []).forEach(s => singerIdMap[s.name] = s.id);
+        }
+
+        const newSingers = singers.filter(name => !singerIdMap[name]);
+        if (newSingers.length > 0) {
+          const { data: inserted, error: insErr } = await sb.from('singers').insert(newSingers.map(name => ({ name }))).select('id, name');
+          if (insErr) {
+            const { data: retry } = await sb.from('singers').select('id, name').in('name', newSingers);
+            (retry || []).forEach(s => singerIdMap[s.name] = s.id);
+          } else {
+            (inserted || []).forEach(s => singerIdMap[s.name] = s.id);
+          }
+        }
+
+        if (isEditing) {
+          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
+          if (upErr) throw upErr;
+          await sb.from('song_singers').delete().eq('song_id', editingId);
+          const links = singers.map(name => ({ song_id: editingId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+          if (links.length > 0) {
+            const { error: linkErr } = await sb.from('song_singers').insert(links);
+            if (linkErr) throw linkErr;
+          }
+        } else {
+          const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
+          if (songErr) throw songErr;
+          const links = singers.map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+          if (links.length > 0) {
+            const { error: linkErr } = await sb.from('song_singers').insert(links);
+            if (linkErr) throw linkErr;
+          }
+        }
+
+        // 后台静默刷新一下种类下拉框（不阻塞界面）
+        loadGenres();
+
+      } catch (err) {
+        // 如果网络真的失败了，回滚界面并提示
+        alert('❌ 保存失败（网络问题）：' + err.message);
+        allSongs = backupSongs;
+        renderSongs();
+      }
     }
 
     async function ensureSinger(name) {
