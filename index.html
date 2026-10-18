@@ -1642,6 +1642,83 @@
       }
     }
     init();
+        // ============ 初始化公开模式 ============
+    async function initPublicView(userId) {
+      // 隐藏登录框，显示主界面
+      loginBox.style.display = 'none';
+      mainBox.style.display = 'block';
+
+      // 隐藏添加、导出、种类筛选、用户栏
+      document.querySelector('.toolbar .add-btn').style.display = 'none';
+      document.querySelector('.toolbar .export-btn').style.display = 'none';
+      document.getElementById('genreFilter').style.display = 'none';
+
+      // 右上角改成一个提示
+      const userBar = document.querySelector('.user-bar');
+      userBar.style.display = 'flex';
+      userBar.innerHTML = '<span style="color:#0c4a6e;">👀 正在浏览分享的歌单</span><button onclick="window.location.href=window.location.pathname" style="background:#ccc;color:#333;padding:6px 12px;font-size:13px;">返回主页</button>';
+
+      // 拉取公开数据
+      const { data: songs, error } = await sb
+        .from('songs')
+        .select(`id, title, genre, tags, song_singers ( singers ( name ) )`)
+        .eq('user_id', userId)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
+
+      if (error) { console.error(error); return; }
+
+      allSongs = songs.map(s => ({
+        ...s,
+        singers: (s.song_singers || []).map(l => l.singers ? l.singers.name : null).filter(Boolean)
+      }));
+
+      renderPublicSongs();
+    }
+
+    // ============ 公开模式专用列表（无操作按钮） ============
+    function renderPublicSongs() {
+      const kw = document.getElementById('searchInput').value.trim();
+      let list = allSongs.filter(s => {
+        if (kw && matchScore(s, kw) === 0) return false;
+        return true;
+      });
+
+      if (currentSort === 'genre') {
+        list.sort((a, b) => (a.genre || '').localeCompare(b.genre || '', 'zh'));
+      } else if (currentSort === 'singer') {
+        list.sort((a, b) => (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh'));
+      } else if (currentSort === 'genre_singer') {
+        list.sort((a, b) => {
+          const g = (a.genre || '').localeCompare(b.genre || '', 'zh');
+          if (g !== 0) return g;
+          return (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh');
+        });
+      } else if (kw) {
+        list.sort((a, b) => matchScore(b, kw) - matchScore(a, kw));
+      }
+
+      const container = document.getElementById('songListContainer');
+      if (list.length === 0) {
+        container.innerHTML = '<div class="empty">没有找到歌曲</div>';
+        return;
+      }
+
+      const rows = list.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.title)}</strong></td>
+          <td>${s.singers.map(x => escapeHtml(x)).join(' / ')}</td>
+          <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
+        </tr>
+      `).join('');
+
+      container.innerHTML = `
+        <table class="song-table">
+          <thead><tr><th>歌名</th><th>歌手</th><th>种类</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
   </script>
 </body>
 </html>
