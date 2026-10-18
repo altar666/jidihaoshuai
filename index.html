@@ -784,7 +784,6 @@
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://zcgrjuajjfbcotgjftac.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjZ3JqdWFqamZiY290Z2pmdGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MjA5ODIsImV4cCI6MjEwNzE5Njk4Mn0.3C5exHyfmoTkSr1pfUlmK3-JnN2jkXkE9c20aHXcamw';
@@ -1593,12 +1592,9 @@
       // 2. 生成专属链接
       currentShareUrl = window.location.origin + window.location.pathname + '?user=' + currentUser.id;
 
-      // 3. 本地生成二维码
-      const qrCanvas = document.createElement('canvas');
-      window.QRCode.toCanvas(qrCanvas, currentShareUrl, { width: 400, margin: 2 }, function (error) {
-        if (error) { console.error(error); return; }
-        document.getElementById('qrImg').src = qrCanvas.toDataURL('image/png');
-      });
+      // 3. 直接请求二维码图片
+      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(currentShareUrl);
+      document.getElementById('qrImg').src = qrUrl;
 
       // 4. 显示弹窗
       document.getElementById('qrModal').classList.add('show');
