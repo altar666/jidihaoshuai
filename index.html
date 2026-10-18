@@ -592,9 +592,9 @@
           <button class="add-btn" onclick="openAddModal()">➕ 添加歌曲</button>
           <div class="search-wrap">
             <span class="icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="搜索歌名 / 歌手 / 种类 / 标签" oninput="renderSongs()">
+            <input type="text" id="searchInput" placeholder="搜索歌名 / 歌手 / 种类 / 标签" >
           </div>
-          <select id="genreFilter" onchange="renderSongs()">
+          <select id="genreFilter" onchange="isPublicMode ? renderPublicSongs() : renderSongs()">
             <option value="">全部种类</option>
           </select>
           <button class="sort-btn" onclick="setSort('genre')" id="sortGenre">按种类</button>
@@ -802,7 +802,14 @@
 
     const loginBox = document.getElementById('loginBox');
     const mainBox = document.getElementById('mainBox');
-
+    // 初始化搜索框事件
+    document.getElementById('searchInput').addEventListener('input', function() {
+      if (isPublicMode) {
+        renderPublicSongs();
+      } else {
+        renderSongs();
+      }
+    });
     // 每次打开强制登出
     async function forceLogoutThenCheck() {
       await sb.auth.signOut();
@@ -1648,10 +1655,11 @@
       loginBox.style.display = 'none';
       mainBox.style.display = 'block';
 
-      // 隐藏添加、导出、种类筛选、用户栏
+      // 隐藏“添加”按钮
       document.querySelector('.toolbar .add-btn').style.display = 'none';
-      document.querySelector('.toolbar .export-btn').style.display = 'none';
-      document.getElementById('genreFilter').style.display = 'none';
+      // 精准隐藏“导出图片”和“分享歌单”
+      document.querySelector('.toolbar button[onclick="openExport()"]').style.display = 'none';
+      document.querySelector('.toolbar button[onclick="sharePlaylist()"]').style.display = 'none';
 
       // 右上角改成一个提示
       const userBar = document.querySelector('.user-bar');
@@ -1672,7 +1680,10 @@
         ...s,
         singers: (s.song_singers || []).map(l => l.singers ? l.singers.name : null).filter(Boolean)
       }));
-
+      // 从公开的歌单里提取出种类，填入下拉框
+      const set = new Set(allSongs.map(s => s.genre).filter(Boolean));
+      allGenres = Array.from(set).sort();
+      renderGenreFilter();
       renderPublicSongs();
     }
 
