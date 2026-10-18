@@ -601,12 +601,27 @@
           <button class="sort-btn" onclick="setSort('singer')" id="sortSinger">按歌手</button>
           <button class="sort-btn" onclick="setSort('genre_singer')" id="sortBoth">先种类后歌手</button>
           <button class="export-btn" onclick="openExport()">🖼️ 导出图片</button>
+          <button class="export-btn" onclick="sharePlaylist()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔗 分享歌单</button>
         </div>
         <div id="songListContainer"></div>
       </div>
     </div>
   </div>
-
+      <!-- 二维码分享弹窗 -->
+  <div class="modal-mask" id="qrModal">
+    <div class="modal" style="text-align:center; max-width:340px;">
+      <div class="modal-header">
+        <h2>分享歌单</h2>
+        <button class="close" onclick="document.getElementById('qrModal').classList.remove('show')">×</button>
+      </div>
+      <p style="font-size:13px;color:#666;margin-bottom:15px;">朋友扫一扫，即可在手机上查看你的歌单</p>
+      <img id="qrImg" style="width:220px;height:220px;margin:0 auto;display:block;border-radius:10px;border:1px solid #eee;" src="" alt="二维码">
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button onclick="saveQR()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706);">保存图片</button>
+        <button onclick="copyQR()" style="flex:1; background:linear-gradient(135deg, #0ea5e9, #0284c7);">复制链接</button>
+      </div>
+    </div>
+  </div>
   <!-- 添加/编辑弹窗 -->
   <div class="modal-mask" id="addModal">
     <div class="modal">
@@ -769,6 +784,7 @@
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://zcgrjuajjfbcotgjftac.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjZ3JqdWFqamZiY290Z2pmdGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MjA5ODIsImV4cCI6MjEwNzE5Njk4Mn0.3C5exHyfmoTkSr1pfUlmK3-JnN2jkXkE9c20aHXcamw';
@@ -1564,6 +1580,48 @@
         msg.textContent = '❌ 打包失败：' + e.message;
         msg.className = 'msg error';
       }
+    }
+    // ============ 分享与二维码功能 ============
+    let currentShareUrl = '';
+
+    async function sharePlaylist() {
+      if (!currentUser) return;
+      // 1. 把所有歌设为公开
+      const { error } = await sb.from('songs').update({ is_public: true }).eq('user_id', currentUser.id);
+      if (error) { alert('分享失败：' + error.message); return; }
+
+      // 2. 生成专属链接
+      currentShareUrl = window.location.origin + window.location.pathname + '?user=' + currentUser.id;
+
+      // 3. 本地生成二维码
+      const qrCanvas = document.createElement('canvas');
+      window.QRCode.toCanvas(qrCanvas, currentShareUrl, { width: 400, margin: 2 }, function (error) {
+        if (error) { console.error(error); return; }
+        document.getElementById('qrImg').src = qrCanvas.toDataURL('image/png');
+      });
+
+      // 4. 显示弹窗
+      document.getElementById('qrModal').classList.add('show');
+    }
+
+    function copyQR() {
+      if (!currentShareUrl) return;
+      navigator.clipboard.writeText(currentShareUrl).then(() => {
+        alert('✅ 链接已复制，快去发给朋友吧！');
+      }).catch(() => {
+        prompt('手动复制链接：', currentShareUrl);
+      });
+    }
+
+    function saveQR() {
+      const qrDataUrl = document.getElementById('qrImg').src;
+      if (!qrDataUrl || qrDataUrl.indexOf('data:image') !== 0) return;
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = '我的歌单二维码.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
   </script>
 </body>
