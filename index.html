@@ -1690,7 +1690,10 @@
     // ============ 公开模式专用列表（无操作按钮） ============
     function renderPublicSongs() {
       const kw = document.getElementById('searchInput').value.trim();
+      const genreFilter = document.getElementById('genreFilter').value; // 👈 加这行
+
       let list = allSongs.filter(s => {
+        if (genreFilter && s.genre !== genreFilter) return false; // 👈 加这行
         if (kw && matchScore(s, kw) === 0) return false;
         return true;
       });
