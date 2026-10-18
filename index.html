@@ -809,7 +809,6 @@
       loginBox.style.display = 'block';
       mainBox.style.display = 'none';
     }
-    forceLogoutThenCheck();
 
     // 登录
     async function handleLogin() {
@@ -1609,16 +1608,40 @@
       });
     }
 
-    function saveQR() {
+    // 保存图片
+    async function saveQR() {
       const qrDataUrl = document.getElementById('qrImg').src;
-      if (!qrDataUrl || qrDataUrl.indexOf('data:image') !== 0) return;
-      const a = document.createElement('a');
-      a.href = qrDataUrl;
-      a.download = '我的歌单二维码.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      if (!qrDataUrl) return;
+      try {
+        const response = await fetch(qrDataUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '我的歌单二维码.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('下载失败，请右键图片选择“另存为”。');
+      }
     }
+        // ============ 启动 ============
+    async function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shareUserId = urlParams.get('user');
+
+      if (shareUserId) {
+        isPublicMode = true;
+        await sb.auth.signOut();
+        await initPublicView(shareUserId);
+      } else {
+        isPublicMode = false;
+        await forceLogoutThenCheck();
+      }
+    }
+    init();
   </script>
 </body>
 </html>
