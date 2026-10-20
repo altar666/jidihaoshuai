@@ -1061,11 +1061,6 @@
     }
 
     async function openEditModal(songId) {
-        // 👇 新增这段拦截
-        if (!songId || songId === 'null' || songId.startsWith('temp_')) {
-            alert('这首歌的数据还没同步好，请刷新页面后再试。');
-            return;
-        }
 
         editingId = songId;
         // ... 下面原来的代码保持不变 ...
@@ -1244,14 +1239,7 @@
     }
 
     async function submitSong() {
-      // 显示正在同步的提示
-      document.getElementById('syncStatus').style.display = 'flex';
 
-      // 核心：3秒后强制隐藏提示，防止因为报错卡死导致永远无法编辑
-      if (window.syncTimeout) clearTimeout(window.syncTimeout);
-      window.syncTimeout = setTimeout(() => {
-        document.getElementById('syncStatus').style.display = 'none';
-      }, 3000);
       const title = document.getElementById('songTitle').value.trim();
       const genre = genreInput.value.trim();
       if (!title) return showFormMsg('❌ 请填写歌名', 'error');
