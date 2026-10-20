@@ -1244,7 +1244,14 @@
     }
 
     async function submitSong() {
+      // 显示正在同步的提示
       document.getElementById('syncStatus').style.display = 'flex';
+
+      // 核心：3秒后强制隐藏提示，防止因为报错卡死导致永远无法编辑
+      if (window.syncTimeout) clearTimeout(window.syncTimeout);
+      window.syncTimeout = setTimeout(() => {
+        document.getElementById('syncStatus').style.display = 'none';
+      }, 3000);
       const title = document.getElementById('songTitle').value.trim();
       const genre = genreInput.value.trim();
       if (!title) return showFormMsg('❌ 请填写歌名', 'error');
@@ -1336,7 +1343,7 @@
         allSongs = backupSongs;
         renderSongs();
       } finally {
-        // 👇 新增：无论成功还是失败，最后都把转圈隐藏
+        if (window.syncTimeout) clearTimeout(window.syncTimeout);
         document.getElementById('syncStatus').style.display = 'none';
       }
     }
