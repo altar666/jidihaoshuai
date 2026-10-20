@@ -815,6 +815,7 @@
 
     let currentUser = null;
     let singers = [];
+    let isPublicMode = false;
     let tags = [];
     let allGenres = [];
     let allSongs = [];
@@ -1762,20 +1763,21 @@
     }
         // ============ 个性化设置功能 ============
 
-    // 1. 修改标题颜色并存档
     async function changeTitleColor(color) {
       const h1 = document.querySelector('h1');
       h1.style.background = 'none';
       h1.style.webkitTextFillColor = color;
       h1.style.color = color;
 
-      // 存入云端
       if (currentUser) {
-        await sb.from('settings').upsert({ user_id: currentUser.id, title_color: color });
+        const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, title_color: color });
+        if (error) {
+          console.error('保存颜色失败:', error);
+          alert('颜色保存失败：' + error.message);
+        }
       }
     }
 
-    // 2. 上传全局背景图并存档
     async function uploadGlobalBg(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1783,10 +1785,12 @@
       reader.onload = async ev => {
         const base64Img = ev.target.result;
         applyGlobalBg(base64Img);
-
-        // 存入云端
         if (currentUser) {
-          await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: base64Img });
+          const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: base64Img });
+          if (error) {
+            console.error('保存背景失败:', error);
+            alert('背景保存失败：' + error.message);
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -1823,13 +1827,10 @@
     }
     function changeCardOpacity(val) {
       const opacity = val / 100;
-      // 1. 设置卡片背景透明度
       document.documentElement.style.setProperty('--box-bg', `rgba(255,255,255,${opacity})`);
 
-      // 2. 根据透明度，动态调整模糊度（当透明度低于30%时，逐渐去掉模糊）
       const blurAmount = opacity < 0.3 ? 0 : (opacity - 0.3) * 15;
 
-      // 找到一个样式标签，或者动态创建一个
       let styleTag = document.getElementById('dynamic-blur-style');
       if (!styleTag) {
         styleTag = document.createElement('style');
@@ -1837,7 +1838,6 @@
         document.head.appendChild(styleTag);
       }
 
-      // 3. 覆盖所有带有毛玻璃效果的卡片
       styleTag.innerHTML = `
         .box, .user-bar, #loginBox .box {
           backdrop-filter: blur(${blurAmount}px) !important;
