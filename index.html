@@ -1787,17 +1787,43 @@
     async function uploadGlobalBg(e) {
       const file = e.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = async ev => {
-        const base64Img = ev.target.result;
-        applyGlobalBg(base64Img);
-        if (currentUser) {
-          const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: base64Img });
-          if (error) {
-            console.error('保存背景失败:', error);
-            alert('背景保存失败：' + error.message);
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = async () => {
+          // ===== 核心压缩逻辑：用 Canvas 把图片缩小 =====
+          const canvas = document.createElement('canvas');
+          // 设置最大宽度为 1920（足够电脑屏幕用了），高度按比例缩放
+          const MAX_WIDTH = 1920;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
           }
-        }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 将压缩后的图片转成 JPEG 格式，质量设置为 0.7（肉眼几乎看不出差别，但体积减少 90%）
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // ==========================================
+
+          // 应用并保存压缩后的背景图
+          applyGlobalBg(compressedBase64);
+          if (currentUser) {
+            const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: compressedBase64 });
+            if (error) {
+              console.error('保存背景失败:', error);
+              alert('背景保存失败：' + error.message);
+            } else {
+              console.log("✅ 压缩并保存成功，当前图片大小约:", Math.round(compressedBase64.length / 1024), "KB");
+            }
+          }
+        };
+        img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     }
