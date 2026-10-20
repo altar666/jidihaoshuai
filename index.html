@@ -1809,9 +1809,22 @@
 
     // 4. 加载他人的设置（无论是自己还是别人分享）
     async function loadUserSettings(userId) {
-      const { data, error } = await sb.from('settings').select('*').eq('user_id', userId).maybeSingle();
-      if (error || !data) return;
+      console.log("正在尝试加载设置，用户ID:", userId); // 👈 加个日志
 
+      const { data, error } = await sb.from('settings').select('*').eq('user_id', userId).maybeSingle();
+
+      if (error) {
+        console.error('❌ 读取设置失败:', error);
+        return;
+      }
+      if (!data) {
+        console.log("没有找到该用户的设置数据");
+        return;
+      }
+
+      console.log("✅ 成功读取到设置:", data); // 👈 加个日志
+
+      // 恢复标题颜色
       if (data.title_color) {
         const h1 = document.querySelector('h1');
         h1.style.background = 'none';
@@ -1821,6 +1834,7 @@
         if (picker) picker.value = data.title_color;
       }
 
+      // 恢复背景图
       if (data.bg_image) {
         applyGlobalBg(data.bg_image);
       }
