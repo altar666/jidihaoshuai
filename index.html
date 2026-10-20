@@ -1271,6 +1271,13 @@
       document.getElementById('bgScaleLabel').textContent = '100%';
       document.getElementById('expBgScale').value = 100;
       refreshExportPreview();
+
+      // 如果要清除全局背景，恢复原本的渐变和波浪
+      if (!document.getElementById('bgImageUpload').value) {
+        document.body.style.background = 'linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%) fixed';
+        const wave = document.querySelector('.wave-deco');
+        if (wave) wave.style.display = 'block';
+      }
     }
 
     function openExport() {
@@ -1848,12 +1855,13 @@
     // 3. 应用背景图（无论谁看，都应用）
     function applyGlobalBg(base64Img) {
       if (!base64Img) return;
-      document.body.style.backgroundImage = `url(${base64Img})`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundAttachment = 'fixed';
-      // 让原本的渐变底变成半透明，不然会把背景图盖住
-      document.body.style.backgroundColor = 'rgba(255,255,255,0.3)';
+
+      // 直接用背景图覆盖掉原本的渐变色
+      document.body.style.background = `url(${base64Img}) center center / cover no-repeat fixed`;
+
+      // 顺便把底部的波浪隐藏掉，免得挡住你的背景图
+      const wave = document.querySelector('.wave-deco');
+      if (wave) wave.style.display = 'none';
     }
 
     // 4. 加载他人的设置（无论是自己还是别人分享）
