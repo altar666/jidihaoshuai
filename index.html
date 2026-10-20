@@ -31,7 +31,7 @@
     }
 
     .box {
-      background: rgba(255,255,255,0.85);
+      background: var(--box-bg, rgba(255,255,255,0.85));
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-radius: 16px;
@@ -127,7 +127,7 @@
       color: #0c4a6e;
       margin-bottom: 14px;
       padding: 10px 16px;
-      background: rgba(255,255,255,0.7);
+      background: var(--box-bg, rgba(255,255,255,0.7));
       backdrop-filter: blur(6px);
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.5);
@@ -597,6 +597,11 @@
             选择歌单背景图片
             <input type="file" id="bgImageUpload" accept="image/*" style="display:none;" onchange="uploadGlobalBg(event)">
           </label>
+          <!-- 背景透明度调节 -->
+          <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); padding:5px 12px; border-radius:10px; border:1px solid #bae6fd;">
+            <span style="font-size:13px; color:#0369a1; font-weight:500;">卡片透明度：</span>
+            <input type="range" id="cardOpacitySlider" min="0" max="100" value="85" style="width:80px; cursor:pointer;" oninput="changeCardOpacity(this.value)">
+          </div>
         </div>
 
         <!-- 右边：退出登录 -->
@@ -1812,6 +1817,23 @@
       if (data.bg_image) {
         applyGlobalBg(data.bg_image);
       }
+    }
+    // ============ 调整白色卡片透明度 ============
+    function changeCardOpacity(val) {
+      // val 是 0-100 的数字
+      const opacity = val / 100;
+      // 修改 CSS 变量，让所有 .box 都生效（歌单列表和登录框都会变）
+      document.documentElement.style.setProperty('--box-bg', `rgba(255,255,255,${opacity})`);
+
+      // 如果你想把设置存下来，可以存到 localStorage 里
+      localStorage.setItem('cardOpacity', val);
+    }
+
+    // 网页加载时，读取上次保存的透明度
+    const savedOpacity = localStorage.getItem('cardOpacity');
+    if (savedOpacity !== null) {
+      document.getElementById('cardOpacitySlider').value = savedOpacity;
+      changeCardOpacity(savedOpacity);
     }
   </script>
 </body>
