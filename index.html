@@ -960,7 +960,13 @@
       if (currentSort === 'genre') document.getElementById('sortGenre').classList.add('active');
       if (currentSort === 'singer') document.getElementById('sortSinger').classList.add('active');
       if (currentSort === 'genre_singer') document.getElementById('sortBoth').classList.add('active');
-      renderSongs();
+
+      // 👇 核心改动：判断如果是分享模式，就只渲染列表，不渲染操作按钮
+      if (isPublicMode) {
+        renderPublicSongs();
+      } else {
+        renderSongs();
+      }
     }
 
     function matchScore(song, kw) {
