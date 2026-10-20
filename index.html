@@ -855,8 +855,14 @@
       document.getElementById('userEmail').textContent = currentUser.email;
       loginBox.style.display = 'none';
       mainBox.style.display = 'block';
+      console.time('种类加载');
       await loadGenres();
+      console.timeEnd('种类加载');
+
+      console.time('歌曲加载');
       await loadSongs();
+      console.timeEnd('歌曲加载');
+
       await loadUserSettings(currentUser.id);
     }
 
@@ -1808,38 +1814,31 @@
     }
 
     // 4. 加载他人的设置（无论是自己还是别人分享）
-    async function loadUserSettings(userId) {
-      console.log("正在尝试加载设置，用户ID:", userId); // 👈 加个日志
+      async function loadUserSettings(userId) {
+      console.time('设置加载耗时'); // 开始计时
 
-      const { data, error } = await sb.from('settings').select('*').eq('user_id', userId).maybeSingle();
+      // 用数组查询代替 maybeSingle，速度更快，不会卡死
+      const { data, error } = await sb.from('settings').select('*').eq('user_id', userId);
 
-      if (error) {
-        console.error('❌ 读取设置失败:', error);
-        return;
-      }
-      if (!data) {
-        console.log("没有找到该用户的设置数据");
-        return;
-      }
+      console.timeEnd('设置加载耗时'); // 打印耗时
 
-      console.log("✅ 成功读取到设置:", data); // 👈 加个日志
+      if (error || !data || data.length === 0) return;
 
-      // 恢复标题颜色
-      if (data.title_color) {
+      const settings = data[0];
+
+      if (settings.title_color) {
         const h1 = document.querySelector('h1');
         h1.style.background = 'none';
-        h1.style.webkitTextFillColor = data.title_color;
-        h1.style.color = data.title_color;
+        h1.style.webkitTextFillColor = settings.title_color;
+        h1.style.color = settings.title_color;
         const picker = document.getElementById('titleColorPicker');
-        if (picker) picker.value = data.title_color;
+        if (picker) picker.value = settings.title_color;
       }
 
-      // 恢复背景图
-      if (data.bg_image) {
-        applyGlobalBg(data.bg_image);
+      if (settings.bg_image) {
+        applyGlobalBg(settings.bg_image);
       }
     }
-
     function changeCardOpacity(val) {
       const opacity = val / 100;
       document.documentElement.style.setProperty('--box-bg', `rgba(255,255,255,${opacity})`);
