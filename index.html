@@ -1019,7 +1019,7 @@
       const rows = list.map(s => `
         <tr>
           <td><strong>${escapeHtml(s.title)}</strong></td>
-          <td>${s.singers.map(x => escapeHtml(x)).join(' / ')}</td>
+          <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
           <td style="white-space:nowrap;">
             <button class="op-btn edit" onclick="openEditModal('${s.id}')">✏️ 编辑</button>
@@ -1883,7 +1883,7 @@
       const rows = list.map(s => `
         <tr>
           <td><strong>${escapeHtml(s.title)}</strong></td>
-          <td>${s.singers.map(x => escapeHtml(x)).join(' / ')}</td>
+          <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
         </tr>
       `).join('');
