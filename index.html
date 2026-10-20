@@ -1715,8 +1715,16 @@
       renderGenreFilter();
       await loadUserSettings(userId);
       // 隐藏个性化设置按钮
-      document.getElementById('titleColorPicker').style.display = 'none';
-      document.querySelector('label[for="bgImageUpload"]').style.display = 'none';
+      // 隐藏个性化设置按钮（加判断防止报错）
+      const picker = document.getElementById('titleColorPicker');
+      if (picker && picker.parentElement) picker.parentElement.style.display = 'none';
+
+      const uploadLabel = document.querySelector('label[for="bgImageUpload"]');
+      if (uploadLabel) uploadLabel.style.display = 'none';
+
+      // 顺便把透明度滑块也隐藏了
+      const opacitySlider = document.getElementById('cardOpacitySlider');
+      if (opacitySlider && opacitySlider.parentElement) opacitySlider.parentElement.style.display = 'none';
       renderPublicSongs();
     }
 
