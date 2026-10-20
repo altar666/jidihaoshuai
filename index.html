@@ -581,18 +581,26 @@
 
     <!-- 主界面 -->
     <div id="mainBox" style="display:none;">
-      <div class="user-bar">
-        <span>👤 <span id="userEmail"></span></span>
+      <div class="user-bar" style="justify-content: flex-start; gap: 20px; align-items: center;">
+        <!-- 左边：邮箱和按钮 -->
+        <div style="display:flex; align-items:center; gap:15px;">
+          <span>👤 <span id="userEmail"></span></span>
 
-        <!-- 新增的个性化按钮 -->
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="color" id="titleColorPicker" title="更改标题颜色" style="width:28px; height:28px; padding:0; border:none; border-radius:4px; cursor:pointer;" onchange="changeTitleColor(this.value)">
-          <label for="bgImageUpload" title="设置背景图" style="cursor:pointer; font-size:18px;">🖼️</label>
-          <input type="file" id="bgImageUpload" accept="image/*" style="display:none;" onchange="uploadGlobalBg(event)">
+          <!-- 标题颜色 -->
+          <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); padding:5px 12px; border-radius:10px; border:1px solid #bae6fd;">
+            <span style="font-size:13px; color:#0369a1; font-weight:500;">更改标题颜色：</span>
+            <input type="color" id="titleColorPicker" title="更改标题颜色" style="width:24px; height:24px; padding:0; border:none; border-radius:4px; cursor:pointer; background:transparent;" onchange="changeTitleColor(this.value)">
+          </div>
+
+          <!-- 背景图 -->
+          <label for="bgImageUpload" style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); padding:5px 12px; border-radius:10px; border:1px solid #bae6fd; cursor:pointer; font-size:13px; color:#0369a1; font-weight:500; margin:0;">
+            选择歌单背景图片
+            <input type="file" id="bgImageUpload" accept="image/*" style="display:none;" onchange="uploadGlobalBg(event)">
+          </label>
         </div>
-        <!-- 新增结束 -->
 
-        <button onclick="handleLogout()">退出登录</button>
+        <!-- 右边：退出登录 -->
+        <button onclick="handleLogout()" style="margin-left: auto;">退出登录</button>
       </div>
 
       <div class="box">
