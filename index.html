@@ -855,15 +855,14 @@
       document.getElementById('userEmail').textContent = currentUser.email;
       loginBox.style.display = 'none';
       mainBox.style.display = 'block';
-      console.time('种类加载');
-      await loadGenres();
-      console.timeEnd('种类加载');
-
-      console.time('歌曲加载');
-      await loadSongs();
-      console.timeEnd('歌曲加载');
-
-      await loadUserSettings(currentUser.id);
+      console.time('整体加载');
+      // 三个请求同时发出去，谁先回来谁先渲染，不用互相排队死等
+      await Promise.all([
+        loadGenres(),
+        loadSongs(),
+        loadUserSettings(currentUser.id)
+      ]);
+      console.timeEnd('整体加载');
     }
 
     // 注册
@@ -1777,9 +1776,16 @@
 
       if (currentUser) {
         const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, title_color: color });
+
         if (error) {
           console.error('保存颜色失败:', error);
           alert('颜色保存失败：' + error.message);
+        } else {
+          // 👇 新增的本地缓存代码
+          const local = localStorage.getItem('userSettings_' + currentUser.id);
+          let s = local ? JSON.parse(local) : {};
+          s.title_color = color;
+          localStorage.setItem('userSettings_' + currentUser.id, JSON.stringify(s));
         }
       }
     }
@@ -1792,9 +1798,8 @@
       reader.onload = ev => {
         const img = new Image();
         img.onload = async () => {
-          // ===== 核心压缩逻辑：用 Canvas 把图片缩小 =====
+          // 用 canvas 压缩图片
           const canvas = document.createElement('canvas');
-          // 设置最大宽度为 1920（足够电脑屏幕用了），高度按比例缩放
           const MAX_WIDTH = 1920;
           let width = img.width;
           let height = img.height;
@@ -1806,20 +1811,24 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-
-          // 将压缩后的图片转成 JPEG 格式，质量设置为 0.7（肉眼几乎看不出差别，但体积减少 90%）
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          // ==========================================
 
-          // 应用并保存压缩后的背景图
+          // 应用到网页背景
           applyGlobalBg(compressedBase64);
+
+          // 保存到云端和本地
           if (currentUser) {
             const { error } = await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: compressedBase64 });
             if (error) {
               console.error('保存背景失败:', error);
               alert('背景保存失败：' + error.message);
             } else {
-              console.log("✅ 压缩并保存成功，当前图片大小约:", Math.round(compressedBase64.length / 1024), "KB");
+              console.log("✅ 压缩并保存成功");
+              // 👇 存入本地缓存
+              const local = localStorage.getItem('userSettings_' + currentUser.id);
+              let s = local ? JSON.parse(local) : {};
+              s.bg_image = compressedBase64;
+              localStorage.setItem('userSettings_' + currentUser.id, JSON.stringify(s));
             }
           }
         };
@@ -1840,18 +1849,27 @@
     }
 
     // 4. 加载他人的设置（无论是自己还是别人分享）
-      async function loadUserSettings(userId) {
-      console.time('设置加载耗时'); // 开始计时
+    async function loadUserSettings(userId) {
+      // 1. 先看本地有没有缓存，有的话直接秒用，不卡界面
+      const localSettings = localStorage.getItem('userSettings_' + userId);
+      if (localSettings) {
+        const settings = JSON.parse(localSettings);
+        applySettingsToPage(settings);
+      }
 
-      // 用数组查询代替 maybeSingle，速度更快，不会卡死
+      // 2. 后台悄悄去云端拉取最新的
       const { data, error } = await sb.from('settings').select('*').eq('user_id', userId);
-
-      console.timeEnd('设置加载耗时'); // 打印耗时
-
       if (error || !data || data.length === 0) return;
 
       const settings = data[0];
 
+      // 3. 存到本地，并更新界面
+      localStorage.setItem('userSettings_' + userId, JSON.stringify(settings));
+      applySettingsToPage(settings);
+    }
+
+    // 专门用来应用样式的函数
+    function applySettingsToPage(settings) {
       if (settings.title_color) {
         const h1 = document.querySelector('h1');
         h1.style.background = 'none';
@@ -1860,7 +1878,6 @@
         const picker = document.getElementById('titleColorPicker');
         if (picker) picker.value = settings.title_color;
       }
-
       if (settings.bg_image) {
         applyGlobalBg(settings.bg_image);
       }
