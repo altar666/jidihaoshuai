@@ -583,6 +583,15 @@
     <div id="mainBox" style="display:none;">
       <div class="user-bar">
         <span>👤 <span id="userEmail"></span></span>
+
+        <!-- 新增的个性化按钮 -->
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="color" id="titleColorPicker" title="更改标题颜色" style="width:28px; height:28px; padding:0; border:none; border-radius:4px; cursor:pointer;" onchange="changeTitleColor(this.value)">
+          <label for="bgImageUpload" title="设置背景图" style="cursor:pointer; font-size:18px;">🖼️</label>
+          <input type="file" id="bgImageUpload" accept="image/*" style="display:none;" onchange="uploadGlobalBg(event)">
+        </div>
+        <!-- 新增结束 -->
+
         <button onclick="handleLogout()">退出登录</button>
       </div>
 
@@ -834,6 +843,7 @@
       mainBox.style.display = 'block';
       await loadGenres();
       await loadSongs();
+      await loadUserSettings(currentUser.id);
     }
 
     // 注册
@@ -1684,6 +1694,10 @@
       const set = new Set(allSongs.map(s => s.genre).filter(Boolean));
       allGenres = Array.from(set).sort();
       renderGenreFilter();
+      await loadUserSettings(userId);
+      // 隐藏个性化设置按钮
+      document.getElementById('titleColorPicker').style.display = 'none';
+      document.querySelector('label[for="bgImageUpload"]').style.display = 'none';
       renderPublicSongs();
     }
 
@@ -1732,6 +1746,64 @@
           <tbody>${rows}</tbody>
         </table>
       `;
+    }
+        // ============ 个性化设置功能 ============
+
+    // 1. 修改标题颜色
+    async function changeTitleColor(color) {
+      const h1 = document.querySelector('h1');
+      h1.style.background = 'none';
+      h1.style.webkitTextFillColor = color;
+      h1.style.color = color;
+
+      if (currentUser) {
+        await sb.from('settings').upsert({ user_id: currentUser.id, title_color: color });
+      }
+    }
+
+    // 2. 上传全局背景图
+    async function uploadGlobalBg(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async ev => {
+        const base64Img = ev.target.result;
+        applyGlobalBg(base64Img);
+        if (currentUser) {
+          await sb.from('settings').upsert({ user_id: currentUser.id, bg_image: base64Img });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 3. 应用背景图（无论谁看，都应用）
+    function applyGlobalBg(base64Img) {
+      if (!base64Img) return;
+      document.body.style.backgroundImage = `url(${base64Img})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+      // 让原本的渐变底变成半透明，不然会把背景图盖住
+      document.body.style.backgroundColor = 'rgba(255,255,255,0.3)';
+    }
+
+    // 4. 加载他人的设置（无论是自己还是别人分享）
+    async function loadUserSettings(userId) {
+      const { data, error } = await sb.from('settings').select('*').eq('user_id', userId).single();
+      if (error || !data) return;
+
+      if (data.title_color) {
+        const h1 = document.querySelector('h1');
+        h1.style.background = 'none';
+        h1.style.webkitTextFillColor = data.title_color;
+        h1.style.color = data.title_color;
+        const picker = document.getElementById('titleColorPicker');
+        if (picker) picker.value = data.title_color;
+      }
+
+      if (data.bg_image) {
+        applyGlobalBg(data.bg_image);
+      }
     }
   </script>
 </body>
