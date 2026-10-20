@@ -1134,23 +1134,24 @@
     const singerDropdown = document.getElementById('singerDropdown');
 
     async function loadAllSingers() {
-      console.log("开始加载歌手列表...");
-
+      // 1. 从云端拉取你所有的歌手（依然按创建时间排序）
       const { data, error } = await sb
         .from('singers')
         .select('name')
         .eq('user_id', currentUser.id);
 
-      if (error) {
-        console.error('❌ 查询歌手失败:', error);
-        return;
-      }
+      if (error) { console.error('获取歌手失败:', error); return; }
 
-      console.log("✅ 云端拉取到的歌手数据:", data);
+      // 2. 提取所有歌手名字
+      let dbSingers = data.map(d => d.name);
 
-      // 直接取名字
-      allSingersList = data.map(d => d.name);
-      console.log("整理后的列表:", allSingersList);
+      // 3. 读取你最近使用过的歌手
+      const recent = JSON.parse(localStorage.getItem('recentSingers_' + currentUser.id) || '[]');
+
+      // 4. 把最近用的歌手排在最前面，剩下的接在后面
+      // 先把最近用的从大列表里剔除，然后再拼接
+      let rest = dbSingers.filter(name => !recent.includes(name));
+      allSingersList = [...recent, ...rest];
     }
 
     function showSingerDropdown() {
@@ -1290,6 +1291,15 @@
 
         // 后台静默刷新一下种类下拉框（不阻塞界面）
         loadGenres();
+
+        // 👇 新增：记录最近使用的歌手到本地
+        let recent = JSON.parse(localStorage.getItem('recentSingers_' + currentUser.id) || '[]');
+        singers.forEach(name => {
+          recent = recent.filter(n => n !== name); // 去重
+          recent.unshift(name); // 插到最前面
+        });
+        recent = recent.slice(0, 20); // 保留最近 20 个
+        localStorage.setItem('recentSingers_' + currentUser.id, JSON.stringify(recent));
 
       } catch (err) {
         // 如果网络真的失败了，回滚界面并提示
