@@ -1061,7 +1061,7 @@
     }
 
     async function openEditModal(songId) {
-
+      console.log("👉 1. 点击了编辑，传入的 ID 是:", songId); // 👈 加这行
         editingId = songId;
         // ... 下面原来的代码保持不变 ...
         const song = allSongs.find(s => s.id === songId);
@@ -1239,6 +1239,7 @@
     }
 
     async function submitSong() {
+
       // 1. 显示正在同步的提示
       document.getElementById('syncStatus').style.display = 'flex';
 
@@ -1257,9 +1258,10 @@
       // 1. 先备份当前状态（用于失败回滚）
       const isEditing = !!editingId;
       const backupSongs = [...allSongs];
-
+      console.log("👉 2. 准备保存，此时 editingId 是:", editingId);
       // 2. 乐观更新：立刻在本地界面显示
       if (isEditing) {
+          console.log("👉 3. 进入编辑分支，准备发给数据库的 ID 是:", editingId);
         const idx = allSongs.findIndex(s => s.id === editingId);
         if (idx > -1) {
           allSongs[idx] = { ...allSongs[idx], title, genre, tags, singers: [...singers] };
@@ -1296,6 +1298,7 @@
         }
 
         if (isEditing) {
+          console.log("👉 4. 最终发给 Supabase 的 ID 是:", editingId);
           const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
           if (upErr) throw upErr;
           await sb.from('song_singers').delete().eq('song_id', editingId);
