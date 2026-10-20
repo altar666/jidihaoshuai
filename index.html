@@ -1821,14 +1821,30 @@
         applyGlobalBg(data.bg_image);
       }
     }
-    // ============ 调整白色卡片透明度 ============
     function changeCardOpacity(val) {
-      // val 是 0-100 的数字
       const opacity = val / 100;
-      // 修改 CSS 变量，让所有 .box 都生效（歌单列表和登录框都会变）
+      // 1. 设置卡片背景透明度
       document.documentElement.style.setProperty('--box-bg', `rgba(255,255,255,${opacity})`);
 
-      // 如果你想把设置存下来，可以存到 localStorage 里
+      // 2. 根据透明度，动态调整模糊度（当透明度低于30%时，逐渐去掉模糊）
+      const blurAmount = opacity < 0.3 ? 0 : (opacity - 0.3) * 15;
+
+      // 找到一个样式标签，或者动态创建一个
+      let styleTag = document.getElementById('dynamic-blur-style');
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'dynamic-blur-style';
+        document.head.appendChild(styleTag);
+      }
+
+      // 3. 覆盖所有带有毛玻璃效果的卡片
+      styleTag.innerHTML = `
+        .box, .user-bar, #loginBox .box {
+          backdrop-filter: blur(${blurAmount}px) !important;
+          -webkit-backdrop-filter: blur(${blurAmount}px) !important;
+        }
+      `;
+
       localStorage.setItem('cardOpacity', val);
     }
 
