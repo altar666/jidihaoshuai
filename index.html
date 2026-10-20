@@ -1134,15 +1134,23 @@
     const singerDropdown = document.getElementById('singerDropdown');
 
     async function loadAllSingers() {
-      // 必须加上 .eq('user_id', currentUser.id)，只查自己的歌手
+      console.log("开始加载歌手列表...");
+
       const { data, error } = await sb
         .from('singers')
-        .select('name, created_at')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+        .select('name')
+        .eq('user_id', currentUser.id);
 
-      if (error) { console.error('获取歌手失败:', error); return; }
+      if (error) {
+        console.error('❌ 查询歌手失败:', error);
+        return;
+      }
+
+      console.log("✅ 云端拉取到的歌手数据:", data);
+
+      // 直接取名字
       allSingersList = data.map(d => d.name);
+      console.log("整理后的列表:", allSingersList);
     }
 
     function showSingerDropdown() {
@@ -1254,7 +1262,7 @@
         if (newSingers.length > 0) {
           const { data: inserted, error: insErr } = await sb.from('singers').insert(newSingers.map(name => ({ name, user_id: currentUser.id }))).select('id, name');
           if (insErr) {
-            const { data: retry } = await sb.from('singers').select('id, name').in('name', newSingers);
+            const { data: retry } = await sb.from('singers').select('id', name).eq('user_id', currentUser.id).in('name', newSingers);
             (retry || []).forEach(s => singerIdMap[s.name] = s.id);
           } else {
             (inserted || []).forEach(s => singerIdMap[s.name] = s.id);
