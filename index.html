@@ -668,9 +668,13 @@
       <div class="form-row">
         <label>歌手 *（逐个添加）</label>
         <div class="singer-list" id="singerList"></div>
-        <div class="singer-input-row">
-          <input type="text" id="singerInput" placeholder="输入歌手名，并点击添加歌手" onkeydown="if(event.key==='Enter'){event.preventDefault();addSinger();}">
+        <div class="singer-input-row" style="position: relative;">
+          <input type="text" id="singerInput" placeholder="输入歌手名（点击查看已添加歌手）" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();addSinger();}" onfocus="showSingerDropdown()" oninput="filterSingerDropdown()" onblur="setTimeout(hideSingerDropdown, 200)">
           <button onclick="addSinger()">添加歌手</button>
+          <!-- 歌手下拉框 -->
+          <div class="dropdown" id="singerDropdown" style="top: 100%;">
+            <div class="dropdown-hint">可自行输入新歌手</div>
+          </div>
         </div>
       </div>
 
@@ -821,6 +825,7 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { pinyin } = window.pinyinPro;
 
+    window.isPublicMode = false;
     let currentUser = null;
     let singers = [];
     let isPublicMode = false;
@@ -961,8 +966,8 @@
       if (currentSort === 'singer') document.getElementById('sortSinger').classList.add('active');
       if (currentSort === 'genre_singer') document.getElementById('sortBoth').classList.add('active');
 
-      // 👇 核心改动：判断如果是分享模式，就只渲染列表，不渲染操作按钮
-      if (isPublicMode) {
+      // 👇 核心：判断是公开模式，走公开渲染
+      if (window.isPublicMode) {
         renderPublicSongs();
       } else {
         renderSongs();
@@ -981,6 +986,9 @@
     }
 
     function renderSongs() {
+      if (window.isPublicMode) {
+        return renderPublicSongs();
+      }
       const kw = document.getElementById('searchInput').value.trim();
       const genreFilter = document.getElementById('genreFilter').value;
       let list = allSongs.filter(s => {
@@ -1045,6 +1053,7 @@
       document.getElementById('formMsg').textContent = '';
       renderSingers(); renderTags();
       document.getElementById('addModal').classList.add('show');
+      loadAllSingers();
     }
 
     async function openEditModal(songId) {
@@ -1118,6 +1127,59 @@
       singerListEl.innerHTML = singers.map((s, i) =>
         `<span class="singer-tag">${escapeHtml(s)}<span class="remove" onclick="removeSinger(${i})">×</span></span>`
       ).join('');
+    }
+
+    // ============ 歌手下拉框功能 ============
+    let allSingersList = [];
+    const singerDropdown = document.getElementById('singerDropdown');
+
+    // 每次打开弹窗时，去数据库拉取一次所有歌手
+    async function loadAllSingers() {
+      const { data, error } = await sb.from('singers').select('name');
+      if (error) { console.error(error); return; }
+      allSingersList = data.map(d => d.name);
+    }
+
+    function showSingerDropdown() {
+      renderSingerDropdown(singerInputEl.value.trim());
+      singerDropdown.classList.add('show');
+    }
+
+    function filterSingerDropdown() {
+      renderSingerDropdown(singerInputEl.value.trim());
+      singerDropdown.classList.add('show');
+    }
+
+    function hideSingerDropdown() {
+      singerDropdown.classList.remove('show');
+    }
+
+    function renderSingerDropdown(filter) {
+      let list = allSingersList;
+      if (filter) {
+        list = list.filter(s => s.includes(filter));
+      }
+      // 过滤掉已经在当前列表里的歌手
+      list = list.filter(s => !singers.includes(s));
+
+      let hint = filter ? '没有找到匹配的歌手，可点击添加' : '可自行输入新歌手';
+      let renderList = list;
+
+      // 优化：最多显示 50 个
+      if (!filter && list.length > 50) {
+        renderList = list.slice(0, 50);
+        hint = `共有 ${list.length} 位歌手，已显示前 50 位。输入关键字可搜索更多`;
+      }
+
+      singerDropdown.innerHTML = `<div class="dropdown-hint">${hint}</div>` +
+        renderList.map(s => `<div class="dropdown-item" onmousedown="selectSingerFromDropdown('${s.replace(/'/g, "\\'")}')">${escapeHtml(s)}</div>`).join('');
+    }
+
+    function selectSingerFromDropdown(name) {
+      singerInputEl.value = name;
+      hideSingerDropdown();
+      // 自动帮你添加到标签里
+      addSinger();
     }
 
     // ============ 标签 ============
@@ -1713,6 +1775,7 @@
     init();
         // ============ 初始化公开模式 ============
     async function initPublicView(userId) {
+      window.isPublicMode = true;
       showLoading();
       // 隐藏登录框，显示主界面
       loginBox.style.display = 'none';
