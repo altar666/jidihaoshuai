@@ -1133,10 +1133,15 @@
     let allSingersList = [];
     const singerDropdown = document.getElementById('singerDropdown');
 
-    // 每次打开弹窗时，去数据库拉取一次所有歌手
     async function loadAllSingers() {
-      const { data, error } = await sb.from('singers').select('name');
-      if (error) { console.error(error); return; }
+      // 必须加上 .eq('user_id', currentUser.id)，只查自己的歌手
+      const { data, error } = await sb
+        .from('singers')
+        .select('name, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) { console.error('获取歌手失败:', error); return; }
       allSingersList = data.map(d => d.name);
     }
 
@@ -1241,13 +1246,13 @@
       try {
         let singerIdMap = {};
         if (singers.length > 0) {
-          const { data: existing } = await sb.from('singers').select('id, name').in('name', singers);
+          const { data: existing } = await sb.from('singers').select('id, name').eq('user_id', currentUser.id).in('name', singers);
           (existing || []).forEach(s => singerIdMap[s.name] = s.id);
         }
 
         const newSingers = singers.filter(name => !singerIdMap[name]);
         if (newSingers.length > 0) {
-          const { data: inserted, error: insErr } = await sb.from('singers').insert(newSingers.map(name => ({ name }))).select('id, name');
+          const { data: inserted, error: insErr } = await sb.from('singers').insert(newSingers.map(name => ({ name, user_id: currentUser.id }))).select('id, name');
           if (insErr) {
             const { data: retry } = await sb.from('singers').select('id, name').in('name', newSingers);
             (retry || []).forEach(s => singerIdMap[s.name] = s.id);
