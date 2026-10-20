@@ -1239,6 +1239,14 @@
     }
 
     async function submitSong() {
+      // 1. 显示正在同步的提示
+      document.getElementById('syncStatus').style.display = 'flex';
+
+      // 2. 核心：3秒后强制隐藏提示，防止因为报错卡死
+      if (window.syncTimeout) clearTimeout(window.syncTimeout);
+      window.syncTimeout = setTimeout(() => {
+        document.getElementById('syncStatus').style.display = 'none';
+      }, 3000);
 
       const title = document.getElementById('songTitle').value.trim();
       const genre = genreInput.value.trim();
@@ -1251,14 +1259,7 @@
       const backupSongs = [...allSongs];
 
       // 2. 乐观更新：立刻在本地界面显示
-      // 2. 乐观更新：立刻在本地界面显示
       if (isEditing) {
-        // 👇 新增这一行，拦截损坏的 ID
-        if (!editingId || editingId === 'null') {
-          alert('❌ 无法保存：数据 ID 丢失，请刷新页面重试。');
-          return;
-        }
-
         const idx = allSongs.findIndex(s => s.id === editingId);
         if (idx > -1) {
           allSongs[idx] = { ...allSongs[idx], title, genre, tags, singers: [...singers] };
@@ -1287,7 +1288,7 @@
         if (newSingers.length > 0) {
           const { data: inserted, error: insErr } = await sb.from('singers').insert(newSingers.map(name => ({ name, user_id: currentUser.id }))).select('id, name');
           if (insErr) {
-            const { data: retry } = await sb.from('singers').select('id', name).eq('user_id', currentUser.id).in('name', newSingers);
+            const { data: retry } = await sb.from('singers').select('id, name').eq('user_id', currentUser.id).in('name', newSingers);
             (retry || []).forEach(s => singerIdMap[s.name] = s.id);
           } else {
             (inserted || []).forEach(s => singerIdMap[s.name] = s.id);
@@ -1316,7 +1317,7 @@
         // 后台静默刷新一下种类下拉框（不阻塞界面）
         loadGenres();
 
-        // 👇 新增：记录最近使用的歌手到本地
+        // 👇 记录最近使用的歌手到本地
         let recent = JSON.parse(localStorage.getItem('recentSingers_' + currentUser.id) || '[]');
         singers.forEach(name => {
           recent = recent.filter(n => n !== name); // 去重
@@ -1331,6 +1332,7 @@
         allSongs = backupSongs;
         renderSongs();
       } finally {
+        // 👇 无论成功还是失败，最后都把转圈隐藏，并清空定时器
         if (window.syncTimeout) clearTimeout(window.syncTimeout);
         document.getElementById('syncStatus').style.display = 'none';
       }
