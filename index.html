@@ -828,7 +828,6 @@
     window.isPublicMode = false;
     let currentUser = null;
     let singers = [];
-    let isPublicMode = false;
     let tags = [];
     let allGenres = [];
     let allSongs = [];
@@ -1057,7 +1056,14 @@
     }
 
     async function openEditModal(songId) {
+      // 👇 新增这段拦截
+      if (!songId || songId === 'null' || songId.startsWith('temp_')) {
+        alert('这首歌的数据还没同步好，请刷新页面后再试。');
+        return;
+      }
+
       editingId = songId;
+      // ... 下面原来的代码保持不变 ...
       const song = allSongs.find(s => s.id === songId);
       if (!song) return;
       document.getElementById('modalTitle').textContent = '✏️ 编辑歌曲';
@@ -1234,7 +1240,14 @@
       const backupSongs = [...allSongs];
 
       // 2. 乐观更新：立刻在本地界面显示
+      // 2. 乐观更新：立刻在本地界面显示
       if (isEditing) {
+        // 👇 新增这一行，拦截损坏的 ID
+        if (!editingId || editingId === 'null') {
+          alert('❌ 无法保存：数据 ID 丢失，请刷新页面重试。');
+          return;
+        }
+
         const idx = allSongs.findIndex(s => s.id === editingId);
         if (idx > -1) {
           allSongs[idx] = { ...allSongs[idx], title, genre, tags, singers: [...singers] };
