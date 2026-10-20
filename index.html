@@ -1298,11 +1298,16 @@
         }
 
         if (isEditing) {
-          console.log("👉 4. 最终发给 Supabase 的 ID 是:", editingId);
-          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', editingId);
+          // 👇 核心修复：在 ID 被清空前，赶紧存到一个临时变量里！
+          const safeId = editingId;
+          console.log("👉 4. 最终发给 Supabase 的 ID 是:", safeId);
+
+          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', safeId);
           if (upErr) throw upErr;
-          await sb.from('song_singers').delete().eq('song_id', editingId);
-          const links = singers.map(name => ({ song_id: editingId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+
+          await sb.from('song_singers').delete().eq('song_id', safeId);
+
+          const links = singers.map(name => ({ song_id: safeId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
           if (links.length > 0) {
             const { error: linkErr } = await sb.from('song_singers').insert(links);
             if (linkErr) throw linkErr;
