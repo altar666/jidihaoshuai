@@ -1239,11 +1239,11 @@
     }
 
     async function submitSong() {
+      // 👇 核心操作：在关弹窗清空 ID 之前，把它抓进局部变量 currentId 里！
+      const currentId = editingId;
+      const isEditing = !!currentId;
 
-      // 1. 显示正在同步的提示
       document.getElementById('syncStatus').style.display = 'flex';
-
-      // 2. 核心：3秒后强制隐藏提示，防止因为报错卡死
       if (window.syncTimeout) clearTimeout(window.syncTimeout);
       window.syncTimeout = setTimeout(() => {
         document.getElementById('syncStatus').style.display = 'none';
@@ -1255,30 +1255,25 @@
       if (singers.length === 0) return showFormMsg('❌ 请至少添加一个歌手', 'error');
       if (!genre) return showFormMsg('❌ 请填写种类', 'error');
 
-      // 1. 先备份当前状态（用于失败回滚）
-      const isEditing = !!editingId;
       const backupSongs = [...allSongs];
-      console.log("👉 2. 准备保存，此时 editingId 是:", editingId);
-      // 2. 乐观更新：立刻在本地界面显示
+
+      // 乐观更新
       if (isEditing) {
-          console.log("👉 3. 进入编辑分支，准备发给数据库的 ID 是:", editingId);
-        const idx = allSongs.findIndex(s => s.id === editingId);
+        const idx = allSongs.findIndex(s => s.id === currentId);
         if (idx > -1) {
           allSongs[idx] = { ...allSongs[idx], title, genre, tags, singers: [...singers] };
         }
       } else {
         allSongs.unshift({
-          id: 'temp_' + Date.now(), // 临时 ID
+          id: 'temp_' + Date.now(),
           title, genre, tags, singers: [...singers],
           created_at: new Date().toISOString()
         });
       }
 
-      // 立刻渲染列表，并关闭弹窗
       renderSongs();
-      closeAddModal();
+      closeAddModal(); // 这里虽然清空了全局 editingId，但我们有 currentId 护体！
 
-      // 3. 后台慢慢发网络请求
       try {
         let singerIdMap = {};
         if (singers.length > 0) {
@@ -1298,16 +1293,13 @@
         }
 
         if (isEditing) {
-          // 👇 核心修复：在 ID 被清空前，赶紧存到一个临时变量里！
-          const safeId = editingId;
-          console.log("👉 4. 最终发给 Supabase 的 ID 是:", safeId);
-
-          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', safeId);
+          // 👇 这里全部使用安全无虞的 currentId
+          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', currentId);
           if (upErr) throw upErr;
 
-          await sb.from('song_singers').delete().eq('song_id', safeId);
+          await sb.from('song_singers').delete().eq('song_id', currentId);
 
-          const links = singers.map(name => ({ song_id: safeId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+          const links = singers.map(name => ({ song_id: currentId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
           if (links.length > 0) {
             const { error: linkErr } = await sb.from('song_singers').insert(links);
             if (linkErr) throw linkErr;
@@ -1322,25 +1314,21 @@
           }
         }
 
-        // 后台静默刷新一下种类下拉框（不阻塞界面）
         loadGenres();
 
-        // 👇 记录最近使用的歌手到本地
         let recent = JSON.parse(localStorage.getItem('recentSingers_' + currentUser.id) || '[]');
         singers.forEach(name => {
-          recent = recent.filter(n => n !== name); // 去重
-          recent.unshift(name); // 插到最前面
+          recent = recent.filter(n => n !== name);
+          recent.unshift(name);
         });
-        recent = recent.slice(0, 20); // 保留最近 20 个
+        recent = recent.slice(0, 20);
         localStorage.setItem('recentSingers_' + currentUser.id, JSON.stringify(recent));
 
       } catch (err) {
-        // 如果网络真的失败了，回滚界面并提示
         alert('❌ 保存失败（网络问题）：' + err.message);
         allSongs = backupSongs;
         renderSongs();
       } finally {
-        // 👇 无论成功还是失败，最后都把转圈隐藏，并清空定时器
         if (window.syncTimeout) clearTimeout(window.syncTimeout);
         document.getElementById('syncStatus').style.display = 'none';
       }
