@@ -1066,7 +1066,7 @@
           <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === 1 ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === 1 ? 'not-allowed' : 'pointer'};">◀ 上一页</button>
 
           <span style="font-size:14px; color:#0369a1; font-weight:bold; margin: 0 10px;">
-            第 <input type="number" id="pageInput" value="${currentPage}" min="1" max="${totalPages}" style="width:50px; text-align:center; padding:4px; border:1px solid #bae6fd; border-radius:4px; font-size:13px; outline:none;"> / ${totalPages} 页
+            第 <input type="number" id="pageInput" value="${currentPage}" min="1" max="${totalPages}" style="width:50px; text-align:center; padding:4px; border:1px solid #bae6fd; border-radius:4px; font-size:13px; outline:none;" onkeydown="if(event.key==='Enter'){ jumpToPage(this.value); }" onblur="jumpToPage(this.value)"> / ${totalPages} 页
           </span>
 
           <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === totalPages ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === totalPages ? 'not-allowed' : 'pointer'};">下一页 ▶</button>
