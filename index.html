@@ -1024,7 +1024,6 @@
         return;
       }
 
-      // 👇 核心：分页逻辑（每页 10 首）
       const pageSize = 10;
       const totalPages = Math.ceil(list.length / pageSize) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
@@ -1038,7 +1037,7 @@
           <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
           <td style="white-space:nowrap;">
-            ${s.id && s.id.startsWith('temp_')
+            ${s.id && (s.id.startsWith('temp_') || (window.syncingIds && window.syncingIds.includes(s.id)))
               ? `<span style="color:#f59e0b; font-size:12px; font-weight:bold;">⏳ 正在同步...</span>`
               : `<button class="op-btn edit" onclick="openEditModal('${s.id}')">✏️ 编辑</button>
                  <button class="op-btn del" onclick="openDeleteModal('${s.id}')">🗑️ 删除</button>`
@@ -1055,7 +1054,6 @@
         ${renderPagination(totalPages)}
       `;
     }
-
     // 渲染翻页按钮的 HTML
     function renderPagination(totalPages) {
       if (totalPages <= 1) return ''; // 只有一页就不显示翻页
@@ -1121,6 +1119,10 @@
     }
 
     async function openEditModal(songId) {
+        if (window.syncingIds && window.syncingIds.includes(songId)) {
+        alert('⏳ 正在同步...');
+        return;
+      }
       console.log("👉 1. 点击了编辑，传入的 ID 是:", songId); // 👈 加这行
         editingId = songId;
         // ... 下面原来的代码保持不变 ...
@@ -1313,10 +1315,9 @@
     }
 
     async function submitSong() {
-      // 👇 核心操作：在关弹窗清空 ID 之前，把它抓进局部变量 currentId 里！
+      // 在关弹窗清空 ID 之前，把它抓进局部变量 currentId 里！
       const currentId = editingId;
       const isEditing = !!currentId;
-
 
       const title = document.getElementById('songTitle').value.trim();
       const genre = genreInput.value.trim();
@@ -1341,7 +1342,7 @@
       }
 
       renderSongs();
-      closeAddModal(); // 这里虽然清空了全局 editingId，但我们有 currentId 护体！
+      closeAddModal();
 
       try {
         let singerIdMap = {};
@@ -1362,16 +1363,30 @@
         }
 
         if (isEditing) {
-          // 👇 这里全部使用安全无虞的 currentId
-          const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', currentId);
-          if (upErr) throw upErr;
+          // 👇 上锁：记录正在同步的 ID
+          if (!window.syncingIds) window.syncingIds = [];
+          window.syncingIds.push(currentId);
 
-          await sb.from('song_singers').delete().eq('song_id', currentId);
+          // 👇 立刻重新渲染表格，让这一行变成“⏳ 正在同步...”
+          renderSongs();
 
-          const links = singers.map(name => ({ song_id: currentId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
-          if (links.length > 0) {
-            const { error: linkErr } = await sb.from('song_singers').insert(links);
-            if (linkErr) throw linkErr;
+          try {
+            const { error: upErr } = await sb.from('songs').update({ title, genre, tags }).eq('id', currentId);
+            if (upErr) throw upErr;
+
+            await sb.from('song_singers').delete().eq('song_id', currentId);
+
+            const links = singers.map(name => ({ song_id: currentId, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
+            if (links.length > 0) {
+              const { error: linkErr } = await sb.from('song_singers').insert(links);
+              if (linkErr) throw linkErr;
+            }
+          } finally {
+            // 👇 解锁：不管成功还是失败，都把它从同步列表中移除
+            window.syncingIds = window.syncingIds.filter(id => id !== currentId);
+
+            // 👇 核心：存完后再次刷新表格，把按钮变回来！
+            renderSongs();
           }
         } else {
           const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
@@ -1383,7 +1398,7 @@
             if (linkErr) throw linkErr;
           }
 
-          // 👇 核心：等存好后，悄悄重新拉取数据，把假 ID 替换成真 ID！
+          // 等存好后，悄悄重新拉取数据，把假 ID 替换成真 ID！
           await loadSongs();
         }
 
