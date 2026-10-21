@@ -1054,10 +1054,20 @@
       if (totalPages <= 1) return ''; // 只有一页就不显示翻页
 
       return `
-        <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:20px; padding-bottom:10px;">
-          <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:6px 15px; font-size:13px; background:${currentPage === 1 ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === 1 ? 'not-allowed' : 'pointer'};">◀ 上一页</button>
-          <span style="font-size:14px; color:#0369a1; font-weight:bold;">第 ${currentPage} / ${totalPages} 页</span>
-          <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} style="padding:6px 15px; font-size:13px; background:${currentPage === totalPages ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === totalPages ? 'not-allowed' : 'pointer'};">下一页 ▶</button>
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-top:20px; padding-bottom:10px; flex-wrap:wrap;">
+
+          <button onclick="jumpToPage(1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === 1 ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === 1 ? 'not-allowed' : 'pointer'};">⏮ 首页</button>
+
+          <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === 1 ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === 1 ? 'not-allowed' : 'pointer'};">◀ 上一页</button>
+
+          <span style="font-size:14px; color:#0369a1; font-weight:bold; margin: 0 10px;">
+            第 <input type="number" id="pageInput" value="${currentPage}" min="1" max="${totalPages}" style="width:50px; text-align:center; padding:4px; border:1px solid #bae6fd; border-radius:4px; font-size:13px; outline:none;"> / ${totalPages} 页
+          </span>
+
+          <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === totalPages ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === totalPages ? 'not-allowed' : 'pointer'};">下一页 ▶</button>
+
+          <button onclick="jumpToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} style="padding:6px 12px; font-size:13px; background:${currentPage === totalPages ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === totalPages ? 'not-allowed' : 'pointer'};">末页 ⏭</button>
+
         </div>
       `;
     }
@@ -1065,6 +1075,17 @@
     // 点击翻页按钮触发
     function changePage(step) {
       currentPage += step;
+      if (window.isPublicMode) {
+        renderPublicSongs();
+      } else {
+        renderSongs();
+      }
+    }
+
+    // 跳转到指定页
+    function jumpToPage(page) {
+      if (!page) return;
+      currentPage = parseInt(page, 10);
       if (window.isPublicMode) {
         renderPublicSongs();
       } else {
