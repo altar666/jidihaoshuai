@@ -1596,11 +1596,11 @@
       let current = { groups: [], estHeight: 0 };
 
       // 页面实际可用的高度（除了安全区，我们只留 30px 底部安全距离就足够了）
-      const maxHeight = size.h - padding.top - padding.bottom - 30;
+      const maxHeight = size.h - padding.top - padding.bottom - 70;
       const innerWidth = size.w - padding.left - padding.right;
 
       // 歌名行高：按照字号的 1.8 倍计算（这是浏览器默认行高的近似值）
-      const lineHeight = songSize * 1.8;
+      const lineHeight = songSize * 1.8 + 2;
 
       // 👇 终极精确计算：标题高度 = 字号本身的高度 + 上下内边距 + 外边距
       const titleHeight = titleSize * 1.3;
