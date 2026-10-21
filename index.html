@@ -632,11 +632,6 @@
           <button class="sort-btn" onclick="setSort('genre_singer')" id="sortBoth">先种类后歌手</button>
           <button class="export-btn" onclick="openExport()">🖼️ 导出图片</button>
           <button class="export-btn" onclick="sharePlaylist()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔗 分享歌单</button>
-                      <!-- 👇 在它后面加上这个标签 👇 -->
-          <span id="syncStatus" style="display:none; align-items:center; gap:6px; font-size:13px; color:#0284c7; font-weight:bold; margin-left:10px;">
-            <svg style="width:16px; height:16px; animation: spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
-            正在保存到云端...
-          </span>
         </div>
         <div id="songListContainer"></div>
       </div>
@@ -1026,8 +1021,11 @@
           <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
           <td style="white-space:nowrap;">
-            <button class="op-btn edit" onclick="openEditModal('${s.id}')">✏️ 编辑</button>
-            <button class="op-btn del" onclick="openDeleteModal('${s.id}')">🗑️ 删除</button>
+            ${s.id && s.id.startsWith('temp_')
+              ? `<span style="color:#f59e0b; font-size:12px; font-weight:bold;">⏳ 正在同步...</span>`
+              : `<button class="op-btn edit" onclick="openEditModal('${s.id}')">✏️ 编辑</button>
+                 <button class="op-btn del" onclick="openDeleteModal('${s.id}')">🗑️ 删除</button>`
+            }
           </td>
         </tr>
       `).join('');
@@ -1090,10 +1088,6 @@
     }
 
     function openDeleteModal(songId) {
-      if (document.getElementById('syncStatus').style.display === 'flex') {
-        alert('数据还在保存中，请稍等一秒钟再操作哦！');
-        return;
-      }
       const song = allSongs.find(s => s.id === songId);
       if (!song) return;
       pendingDeleteId = songId;
@@ -1243,11 +1237,6 @@
       const currentId = editingId;
       const isEditing = !!currentId;
 
-      document.getElementById('syncStatus').style.display = 'flex';
-      if (window.syncTimeout) clearTimeout(window.syncTimeout);
-      window.syncTimeout = setTimeout(() => {
-        document.getElementById('syncStatus').style.display = 'none';
-      }, 3000);
 
       const title = document.getElementById('songTitle').value.trim();
       const genre = genreInput.value.trim();
@@ -1332,9 +1321,6 @@
         alert('❌ 保存失败（网络问题）：' + err.message);
         allSongs = backupSongs;
         renderSongs();
-      } finally {
-        if (window.syncTimeout) clearTimeout(window.syncTimeout);
-        document.getElementById('syncStatus').style.display = 'none';
       }
     }
 
