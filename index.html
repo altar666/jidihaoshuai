@@ -1206,24 +1206,42 @@
     const singerDropdown = document.getElementById('singerDropdown');
 
     async function loadAllSingers() {
-      // 1. 从云端拉取你所有的歌手（依然按创建时间排序）
+      console.log("🔍 开始执行 loadAllSingers，当前用户:", currentUser?.id);
+
+      if (!currentUser) {
+        console.error("❌ 严重错误：currentUser 为空！");
+        return;
+      }
+
+      // 1. 从云端拉取
       const { data, error } = await sb
         .from('singers')
         .select('name')
         .eq('user_id', currentUser.id);
 
-      if (error) { console.error('获取歌手失败:', error); return; }
+      if (error) {
+        console.error('❌ 从数据库获取歌手失败:', error);
+        return;
+      }
 
-      // 2. 提取所有歌手名字
+      console.log("✅ 从数据库拉到的原始数据:", data);
+
+      // 2. 提取名字
       let dbSingers = data.map(d => d.name);
 
-      // 3. 读取你最近使用过的歌手
+      // 3. 读取最近
       const recent = JSON.parse(localStorage.getItem('recentSingers_' + currentUser.id) || '[]');
 
-      // 4. 把最近用的歌手排在最前面，剩下的接在后面
-      // 先把最近用的从大列表里剔除，然后再拼接
+      // 4. 合并
       let rest = dbSingers.filter(name => !recent.includes(name));
       allSingersList = [...recent, ...rest];
+
+      console.log("✅ 最终合并后的歌手列表:", allSingersList);
+
+      // 👇 极关键的一步：如果此时下拉框正好开着，强行重绘它！
+      if (singerDropdown && singerDropdown.classList.contains('show')) {
+        renderSingerDropdown(singerInputEl.value.trim());
+      }
     }
 
     function showSingerDropdown() {
