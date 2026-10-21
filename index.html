@@ -1307,11 +1307,15 @@
         } else {
           const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
           if (songErr) throw songErr;
+
           const links = singers.map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
           if (links.length > 0) {
             const { error: linkErr } = await sb.from('song_singers').insert(links);
             if (linkErr) throw linkErr;
           }
+
+          // 👇 核心：等存好后，悄悄重新拉取数据，把假 ID 替换成真 ID！
+          await loadSongs();
         }
 
         loadGenres();
