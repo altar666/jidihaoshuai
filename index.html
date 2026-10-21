@@ -1588,88 +1588,99 @@
         ? { top: 96, bottom: 96, left: 120, right: 120 }
         : { top: 61, bottom: 61, left: 76, right: 76 };
 
-      // 从界面上获取用户当前设置的真实字号
       const titleSize = parseInt(document.getElementById('expTitleSize').value, 10) || 29;
       const songSize = parseInt(document.getElementById('expSongSize').value, 10) || 19;
+      const titleBg = document.getElementById('expTitleBg').value.trim();
 
+      // ==========================================
+      // 👇 核心：真实测量高度
+      // ==========================================
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.visibility = 'hidden';
+      tempDiv.style.zIndex = '-9999';
+      document.body.appendChild(tempDiv);
+
+      // 1. 测量真实行高（画一个假的歌名）
+      tempDiv.className = 'page-songs';
+      tempDiv.style.fontSize = songSize + 'px';
+      tempDiv.innerHTML = '<span>测试歌名</span>';
+      const realLineHeight = tempDiv.getBoundingClientRect().height;
+
+      // 2. 测量真实标题高度
+      tempDiv.className = 'page-group';
+      tempDiv.style.fontSize = titleSize + 'px';
+      const bgStyle = titleBg ? `background:${titleBg};padding:4px 12px;border-radius:6px;display:inline-block;` : '';
+      tempDiv.innerHTML = `<div class="page-title" style="${bgStyle}">测试标题</div>`;
+      // 真实标题高度 + 底部固定 16px 外边距
+      const realTitleHeight = tempDiv.getBoundingClientRect().height + 16;
+
+      document.body.removeChild(tempDiv);
+
+      // ==========================================
+      // 👇 开始计算分页
+      // ==========================================
       const pages = [];
       let current = { groups: [], estHeight: 0 };
 
-      // 页面实际可用的高度（除了安全区，我们只留 30px 底部安全距离就足够了）
-      const maxHeight = size.h - padding.top - padding.bottom - 70;
+      // 安全区留 50px，因为高度是真实测量的，50px 已经足够富余了
+      const maxHeight = size.h - padding.top - padding.bottom - 50;
       const innerWidth = size.w - padding.left - padding.right;
-
-      // 歌名行高：按照字号的 1.8 倍计算（这是浏览器默认行高的近似值）
-      const lineHeight = songSize * 1.8 + 2;
-
-      // 👇 终极精确计算：标题高度 = 字号本身的高度 + 上下内边距 + 外边距
-      const titleHeight = titleSize * 1.3;
-      const titleMargin = 16; // 对应 CSS 里的 margin-bottom: 16px
-
-      // 如果标题有背景色，CSS 里加了 padding: 4px 12px，上下各 4px，共 8px
-      const hasTitleBg = document.getElementById('expTitleBg').value.trim() !== '';
-      const titlePadding = hasTitleBg ? 8 : 0;
-      const indent = 30; // 歌名列表的左侧缩进
+      const indent = 30; // 歌名左侧缩进
 
       Object.keys(groups).forEach(groupName => {
         let songsLeft = [...groups[groupName]];
         let firstChunk = true;
 
         while (songsLeft.length > 0) {
-          // 👇 精确高度：如果有背景，加上 padding；如果是续页，高度稍微缩减
-          const baseHeight = titleHeight + titlePadding;
-          const tHeight = firstChunk ? baseHeight : baseHeight * 0.8;
+          // 👇 如果是续页（firstChunk为false），标题高度稍微缩减
+          const currentTitleHeight = firstChunk ? realTitleHeight : realTitleHeight * 0.8;
           const usedH = current.estHeight;
-          const availHeight = maxHeight - usedH - tHeight - titleMargin;
+          // 可用高度 = 总高度 - 已用高度 - 当前标题高度
+          const availHeight = maxHeight - usedH - currentTitleHeight;
 
           // 如果剩余高度连一行都放不下，直接换页
-          if (availHeight < lineHeight && current.groups.length > 0) {
+          if (availHeight < realLineHeight && current.groups.length > 0) {
             pages.push(current);
             current = { groups: [], estHeight: 0 };
             continue;
           }
 
-          const availRows = Math.max(1, Math.floor(availHeight / lineHeight));
+          const availRows = Math.max(1, Math.floor(availHeight / realLineHeight));
           let chunk = [];
 
-          // 👇 核心：真实模拟每一行能放多少首歌
+          // 👇 真实模拟每一行能放多少首歌
           let currentRowWidth = 0;
           let rowsUsed = 1;
-          const rowGap = 20; // CSS里设置的歌名之间的横向间距 gap
+          const rowGap = 20; // CSS里的横向间距
 
           for (let i = 0; i < songsLeft.length; i++) {
             const song = songsLeft[i];
             const textWidth = measureTextWidth(song, songSize);
 
-            // 第一行有缩进，后面的行没有
+            // 第一行有缩进
             const currentLineMaxWidth = innerWidth - (rowsUsed === 1 ? indent : 0);
 
             if (currentRowWidth + textWidth > currentLineMaxWidth && currentRowWidth > 0) {
-              // 这一行放不下了，换行
               rowsUsed++;
               currentRowWidth = textWidth + rowGap;
             } else {
-              // 还能放得下，继续往这一行塞
               currentRowWidth += textWidth + rowGap;
             }
 
-            // 如果当前页的行数已经超过了剩余高度能容纳的行数，停下来
             if (rowsUsed > availRows) break;
-
             chunk.push(song);
           }
 
-          // 把这一批歌从剩余列表中截取掉
           songsLeft.splice(0, chunk.length);
-
           current.groups.push({
             name: groupName,
             songs: chunk,
             isContinuation: !firstChunk
           });
 
-          // 精准加上这一批内容占用的总高度
-          current.estHeight += tHeight + titleMargin + (rowsUsed * lineHeight);
+          // 累计高度使用真实值
+          current.estHeight += currentTitleHeight + (rowsUsed * realLineHeight);
           firstChunk = false;
 
           if (songsLeft.length > 0) {
