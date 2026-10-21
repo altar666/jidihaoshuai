@@ -832,6 +832,7 @@
     let allGenres = [];
     let allSongs = [];
     let currentSort = '';
+    let currentPage = 1;
     let editingId = null;
     let pendingDeleteId = null;
 
@@ -1015,8 +1016,17 @@
         container.innerHTML = '<div class="empty">没有找到歌曲</div>';
         return;
       }
-      const rows = list.map(s => `
+
+      // 👇 核心：分页逻辑（每页 10 首）
+      const pageSize = 10;
+      const totalPages = Math.ceil(list.length / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageList = list.slice(startIndex, startIndex + pageSize);
+
+      const rows = pageList.map((s, index) => `
         <tr>
+          <td style="color:#666; font-size:13px; width:60px;">${startIndex + index + 1}</td>
           <td><strong>${escapeHtml(s.title)}</strong></td>
           <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
@@ -1032,10 +1042,34 @@
 
       container.innerHTML = `
         <table class="song-table">
-          <thead><tr><th>歌名</th><th>歌手</th><th>种类</th><th style="width:180px;">操作</th></tr></thead>
+          <thead><tr><th style="width:60px;">序号</th><th>歌名</th><th>歌手</th><th>种类</th><th style="width:180px;">操作</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        ${renderPagination(totalPages)}
       `;
+    }
+
+    // 渲染翻页按钮的 HTML
+    function renderPagination(totalPages) {
+      if (totalPages <= 1) return ''; // 只有一页就不显示翻页
+
+      return `
+        <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:20px; padding-bottom:10px;">
+          <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:6px 15px; font-size:13px; background:${currentPage === 1 ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === 1 ? 'not-allowed' : 'pointer'};">◀ 上一页</button>
+          <span style="font-size:14px; color:#0369a1; font-weight:bold;">第 ${currentPage} / ${totalPages} 页</span>
+          <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} style="padding:6px 15px; font-size:13px; background:${currentPage === totalPages ? '#ccc' : '#0ea5e9'}; color:white; border:none; border-radius:6px; cursor:${currentPage === totalPages ? 'not-allowed' : 'pointer'};">下一页 ▶</button>
+        </div>
+      `;
+    }
+
+    // 点击翻页按钮触发
+    function changePage(step) {
+      currentPage += step;
+      if (window.isPublicMode) {
+        renderPublicSongs();
+      } else {
+        renderSongs();
+      }
     }
 
     function escapeHtml(str) {
@@ -1867,10 +1901,10 @@
     // ============ 公开模式专用列表（无操作按钮） ============
     function renderPublicSongs() {
       const kw = document.getElementById('searchInput').value.trim();
-      const genreFilter = document.getElementById('genreFilter').value; // 👈 加这行
+      const genreFilter = document.getElementById('genreFilter').value;
 
       let list = allSongs.filter(s => {
-        if (genreFilter && s.genre !== genreFilter) return false; // 👈 加这行
+        if (genreFilter && s.genre !== genreFilter) return false;
         if (kw && matchScore(s, kw) === 0) return false;
         return true;
       });
@@ -1895,8 +1929,16 @@
         return;
       }
 
-      const rows = list.map(s => `
+      // 👇 核心：分页逻辑（每页 10 首）
+      const pageSize = 10;
+      const totalPages = Math.ceil(list.length / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageList = list.slice(startIndex, startIndex + pageSize);
+
+      const rows = pageList.map((s, index) => `
         <tr>
+          <td style="color:#666; font-size:13px; width:60px;">${startIndex + index + 1}</td>
           <td><strong>${escapeHtml(s.title)}</strong></td>
           <td>${[...new Set(s.singers)].map(x => escapeHtml(x)).join(' / ')}</td>
           <td><span class="badge genre">${escapeHtml(s.genre || '')}</span></td>
@@ -1905,9 +1947,10 @@
 
       container.innerHTML = `
         <table class="song-table">
-          <thead><tr><th>歌名</th><th>歌手</th><th>种类</th></tr></thead>
+          <thead><tr><th style="width:60px;">序号</th><th>歌名</th><th>歌手</th><th>种类</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        ${renderPagination(totalPages)}
       `;
     }
         // ============ 个性化设置功能 ============
