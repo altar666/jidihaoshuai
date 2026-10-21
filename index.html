@@ -931,30 +931,37 @@
     }
 
     async function loadSongs() {
+      // 👇 核心改动：用嵌套查询一次性拿回歌曲和歌手，无视歌曲数量限制！
       const { data: songs, error } = await sb
         .from('songs')
-        .select('id, title, genre, tags, created_at')
+        .select(`
+          id, title, genre, tags, created_at,
+          song_singers ( singers ( name ) )
+        `)
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
-      if (error) { console.error(error); return; }
 
-      const songIds = songs.map(s => s.id);
-      let singerMap = {};
-      if (songIds.length > 0) {
-        const { data: links } = await sb.from('song_singers').select('song_id, singer_id').in('song_id', songIds);
-        const singerIds = [...new Set((links || []).map(l => l.singer_id))];
-        let nameMap = {};
-        if (singerIds.length > 0) {
-          const { data: names } = await sb.from('singers').select('id, name').in('id', singerIds);
-          (names || []).forEach(n => nameMap[n.id] = n.name);
-        }
-        (links || []).forEach(l => {
-          if (!singerMap[l.song_id]) singerMap[l.song_id] = [];
-          if (nameMap[l.singer_id]) singerMap[l.song_id].push(nameMap[l.singer_id]);
-        });
+      if (error) {
+        console.error('❌ 加载数据失败:', error);
+        return;
       }
 
-      allSongs = songs.map(s => ({ ...s, singers: singerMap[s.id] || [] }));
+      // 整理数据格式
+      allSongs = songs.map(s => {
+        const singersList = (s.song_singers || [])
+          .map(link => link.singers ? link.singers.name : null)
+          .filter(Boolean);
+
+        return {
+          id: s.id,
+          title: s.title,
+          genre: s.genre,
+          tags: s.tags,
+          created_at: s.created_at,
+          singers: singersList // 纯净的歌手名字数组
+        };
+      });
+
       renderSongs();
     }
 
