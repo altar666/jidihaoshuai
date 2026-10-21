@@ -1568,27 +1568,41 @@
       return groups;
     }
 
+    // 👇 使用 Canvas 精准测量文字真实宽度
+    function measureTextWidth(text, fontSize) {
+      let canvas = document.getElementById('measure-canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'measure-canvas';
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.font = `${fontSize}px -apple-system, "Microsoft YaHei", sans-serif`;
+      return ctx.measureText(text).width;
+    }
+
     function paginate(groups, ratio) {
       const size = ratio === 'a4' ? { w: 794, h: 1123 } : { w: 1280, h: 720 };
       const padding = ratio === 'a4'
         ? { top: 96, bottom: 96, left: 120, right: 120 }
         : { top: 61, bottom: 61, left: 76, right: 76 };
 
+      // 从界面上获取用户当前设置的真实字号
+      const titleSize = parseInt(document.getElementById('expTitleSize').value, 10) || 29;
+      const songSize = parseInt(document.getElementById('expSongSize').value, 10) || 19;
+
       const pages = [];
       let current = { groups: [], estHeight: 0 };
 
-      const maxHeight = size.h - padding.top - padding.bottom - 120; // 额外留 40px 底部安全区
+      // 页面实际可用的高度（除了安全区，我们只留 30px 底部安全距离就足够了）
+      const maxHeight = size.h - padding.top - padding.bottom - 30;
       const innerWidth = size.w - padding.left - padding.right;
 
-      const songSize = 19;
-      const titleSize = 29;
-      const lineHeight = songSize * 2.2;
-      const titleHeight = titleSize * 1.4 + 8;
+      const lineHeight = songSize * 1.8; // 行高设为字号的 1.8 倍
+      const titleHeight = titleSize * 1.4 + 16;
       const titleMargin = 14;
-      const indent = 30;
-
-      const songWidthAvg = songSize * 3.8;
-      const songsPerRow = Math.max(3, Math.floor((innerWidth - indent) / songWidthAvg));
+      const indent = 30; // 歌名列表的左侧缩进
 
       Object.keys(groups).forEach(groupName => {
         let songsLeft = [...groups[groupName]];
@@ -1597,17 +1611,47 @@
         while (songsLeft.length > 0) {
           const tHeight = firstChunk ? titleHeight : titleHeight * 0.6;
           const usedH = current.estHeight;
-          const avail = maxHeight - usedH - tHeight - titleMargin;
+          const availHeight = maxHeight - usedH - tHeight - titleMargin;
 
-          if (avail < lineHeight && current.groups.length > 0) {
+          // 如果剩余高度连一行都放不下，直接换页
+          if (availHeight < lineHeight && current.groups.length > 0) {
             pages.push(current);
             current = { groups: [], estHeight: 0 };
             continue;
           }
 
-          const availRows = Math.max(1, Math.floor(avail / lineHeight));
-          const chunkSize = availRows * songsPerRow;
-          const chunk = songsLeft.splice(0, chunkSize);
+          const availRows = Math.max(1, Math.floor(availHeight / lineHeight));
+          let chunk = [];
+
+          // 👇 核心：真实模拟每一行能放多少首歌
+          let currentRowWidth = 0;
+          let rowsUsed = 1;
+          const rowGap = 20; // CSS里设置的歌名之间的横向间距 gap
+
+          for (let i = 0; i < songsLeft.length; i++) {
+            const song = songsLeft[i];
+            const textWidth = measureTextWidth(song, songSize);
+
+            // 第一行有缩进，后面的行没有
+            const currentLineMaxWidth = innerWidth - (rowsUsed === 1 ? indent : 0);
+
+            if (currentRowWidth + textWidth > currentLineMaxWidth && currentRowWidth > 0) {
+              // 这一行放不下了，换行
+              rowsUsed++;
+              currentRowWidth = textWidth + rowGap;
+            } else {
+              // 还能放得下，继续往这一行塞
+              currentRowWidth += textWidth + rowGap;
+            }
+
+            // 如果当前页的行数已经超过了剩余高度能容纳的行数，停下来
+            if (rowsUsed > availRows) break;
+
+            chunk.push(song);
+          }
+
+          // 把这一批歌从剩余列表中截取掉
+          songsLeft.splice(0, chunk.length);
 
           current.groups.push({
             name: groupName,
@@ -1615,8 +1659,8 @@
             isContinuation: !firstChunk
           });
 
-          const rowsUsed = Math.ceil(chunk.length / songsPerRow);
-          current.estHeight += tHeight + titleMargin + rowsUsed * lineHeight;
+          // 精准加上这一批内容占用的总高度
+          current.estHeight += tHeight + titleMargin + (rowsUsed * lineHeight);
           firstChunk = false;
 
           if (songsLeft.length > 0) {
