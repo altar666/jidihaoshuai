@@ -617,19 +617,24 @@
       </div>
 
       <div class="box">
-        <h2>📋 歌曲列表</h2>
+        <h2 style="display:flex; align-items:flex-end; gap:8px; margin-bottom:14px;">
+            <span>📋 歌曲列表</span>
+            <span style="font-size: 12px; color: #64748b; font-weight: normal;">
+            (提示：点击多个排序按钮，按点击先后顺序进行组合排序)
+            </span>
+        </h2>
         <div class="toolbar">
           <button class="add-btn" onclick="openAddModal()">➕ 添加歌曲</button>
           <div class="search-wrap">
             <span class="icon">🔍</span>
             <input type="text" id="searchInput" placeholder="搜索歌名 / 歌手 / 种类 / 标签" >
           </div>
-          <select id="genreFilter" onchange="isPublicMode ? renderPublicSongs() : renderSongs()">
+          <select id="genreFilter" onchange="currentPage = 1; isPublicMode ? renderPublicSongs() : renderSongs()">
             <option value="">全部种类</option>
           </select>
-          <button class="sort-btn" onclick="setSort('genre')" id="sortGenre">按种类</button>
-          <button class="sort-btn" onclick="setSort('singer')" id="sortSinger">按歌手</button>
-          <button class="sort-btn" onclick="setSort('genre_singer')" id="sortBoth">先种类后歌手</button>
+          <button class="sort-btn" onclick="toggleSort('genre')" id="sortBtnGenre">按种类</button>
+          <button class="sort-btn" onclick="toggleSort('singer')" id="sortBtnSinger">按歌手</button>
+          <button class="sort-btn" onclick="toggleSort('length')" id="sortBtnLength">按字数</button>
           <button class="export-btn" onclick="openExport()">🖼️ 导出图片</button>
           <button class="export-btn" onclick="sharePlaylist()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔗 分享歌单</button>
         </div>
@@ -831,7 +836,6 @@
     let tags = [];
     let allGenres = [];
     let allSongs = [];
-    let currentSort = '';
     let currentPage = 1;
     let editingId = null;
     let pendingDeleteId = null;
@@ -840,6 +844,7 @@
     const mainBox = document.getElementById('mainBox');
     // 初始化搜索框事件
     document.getElementById('searchInput').addEventListener('input', function() {
+      currentPage = 1;
       if (isPublicMode) {
         renderPublicSongs();
       } else {
@@ -912,11 +917,23 @@
       document.getElementById('loginMsg').textContent = '';
     }
 
-    // ============ 加载数据 ============
     async function loadGenres() {
-      const { data, error } = await sb.from('songs').select('genre').eq('user_id', currentUser.id);
-      if (error) return console.error(error);
-      const set = new Set(data.map(r => r.genre).filter(Boolean));
+      const PAGE = 1000;
+      let all = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await sb
+          .from('songs')
+          .select('genre')
+          .eq('user_id', currentUser.id)
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) return console.error(error);
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      const set = new Set(all.map(r => r.genre).filter(Boolean));
       allGenres = Array.from(set).sort();
       renderGenreDropdown();
       renderGenreFilter();
@@ -931,23 +948,32 @@
     }
 
     async function loadSongs() {
-      // 👇 核心改动：用嵌套查询一次性拿回歌曲和歌手，无视歌曲数量限制！
-      const { data: songs, error } = await sb
-        .from('songs')
-        .select(`
-          id, title, genre, tags, created_at,
-          song_singers ( singers ( name ) )
-        `)
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+      const PAGE = 1000;
+      let all = [];
+      let from = 0;
+      while (true) {
+        const { data: songs, error } = await sb
+          .from('songs')
+          .select(`
+            id, title, genre, tags, created_at,
+            song_singers ( singers ( name ) )
+          `)
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
 
-      if (error) {
-        console.error('❌ 加载数据失败:', error);
-        return;
+        if (error) {
+          console.error('❌ 加载数据失败:', error);
+          return;
+        }
+
+        all = all.concat(songs);
+        if (songs.length < PAGE) break;
+        from += PAGE;
       }
 
-      // 整理数据格式
-      allSongs = songs.map(s => {
+      allSongs = all.map(s => {
         const singersList = (s.song_singers || [])
           .map(link => link.singers ? link.singers.name : null)
           .filter(Boolean);
@@ -958,27 +984,83 @@
           genre: s.genre,
           tags: s.tags,
           created_at: s.created_at,
-          singers: singersList // 纯净的歌手名字数组
+          singers: singersList
         };
       });
 
       renderSongs();
     }
 
-    // ============ 列表渲染 + 排序 ============
-    function setSort(type) {
-      currentSort = (currentSort === type) ? '' : type;
-      ['sortGenre','sortSinger','sortBoth'].forEach(id => document.getElementById(id).classList.remove('active'));
-      if (currentSort === 'genre') document.getElementById('sortGenre').classList.add('active');
-      if (currentSort === 'singer') document.getElementById('sortSinger').classList.add('active');
-      if (currentSort === 'genre_singer') document.getElementById('sortBoth').classList.add('active');
+    // ============ 全新的动态多条件排序 ============
+    let activeSorts = []; // 数组，按顺序记录你点击的排序方式
 
-      // 👇 核心：判断是公开模式，走公开渲染
+    // 点击按钮触发
+    function toggleSort(type) {
+      currentPage = 1;
+      const index = activeSorts.indexOf(type);
+      if (index > -1) {
+        // 如果已经存在，说明你取消了它
+        activeSorts.splice(index, 1);
+      } else {
+        // 如果不存在，追加到数组最后（优先级最低）
+        activeSorts.push(type);
+      }
+
+      updateSortButtonsUI();
       if (window.isPublicMode) {
         renderPublicSongs();
       } else {
         renderSongs();
       }
+    }
+
+    // 更新按钮的 UI 高亮和序号
+    function updateSortButtonsUI() {
+      const btns = {
+        genre: document.getElementById('sortBtnGenre'),
+        singer: document.getElementById('sortBtnSinger'),
+        length: document.getElementById('sortBtnLength')
+      };
+      const names = { genre: '种类', singer: '歌手', length: '字数' };
+
+      // 先全部重置为普通样式
+      Object.values(btns).forEach(btn => {
+        if (btn) {
+          btn.classList.remove('active');
+          btn.textContent = '按' + names[btn.id.replace('sortBtn', '').toLowerCase()];
+        }
+      });
+
+      // 根据 activeSorts 数组的顺序，依次高亮并加序号
+      activeSorts.forEach((type, index) => {
+        const btn = btns[type];
+        if (btn) {
+          btn.classList.add('active');
+          // 如果是多条件，加上序号 1, 2, 3
+          btn.textContent = (index + 1) + '. 按' + names[type];
+        }
+      });
+    }
+
+    // 生成复合排序比较器（核心）
+    function getCompareFunction() {
+      return (a, b) => {
+        for (let type of activeSorts) {
+          let res = 0;
+          if (type === 'genre') {
+            res = (a.genre || '').localeCompare(b.genre || '', 'zh');
+          } else if (type === 'singer') {
+            res = (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh');
+          } else if (type === 'length') {
+            res = a.title.length - b.title.length;
+          }
+
+          if (res !== 0) return res; // 只要分出胜负，立刻结束
+        }
+
+        // 👇 终极兜底：如果所有条件都一样，或者你根本没点排序按钮，默认按拼音排
+        return pinyinKey(a.title).localeCompare(pinyinKey(b.title));
+      };
     }
 
     function matchScore(song, kw) {
@@ -1004,19 +1086,7 @@
         return true;
       });
 
-      if (currentSort === 'genre') {
-        list.sort((a, b) => (a.genre || '').localeCompare(b.genre || '', 'zh'));
-      } else if (currentSort === 'singer') {
-        list.sort((a, b) => (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh'));
-      } else if (currentSort === 'genre_singer') {
-        list.sort((a, b) => {
-          const g = (a.genre || '').localeCompare(b.genre || '', 'zh');
-          if (g !== 0) return g;
-          return (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh');
-        });
-      } else if (kw) {
-        list.sort((a, b) => matchScore(b, kw) - matchScore(a, kw));
-      }
+      list.sort(getCompareFunction());
 
       const container = document.getElementById('songListContainer');
       if (list.length === 0) {
@@ -1595,7 +1665,7 @@
       const pages = [];
       let current = { groups: [], estHeight: 0 };
 
-      // 👇 底部安全区硬留 100px。这样哪怕算错了一两行，也绝对不会切到底边。
+      // 👇 底部安全区硬留 80px。这样哪怕算错了一两行，也绝对不会切到底边。
       const maxHeight = size.h - padding.top - padding.bottom - 80;
       const innerWidth = size.w - padding.left - padding.right;
 
@@ -2021,19 +2091,7 @@
         return true;
       });
 
-      if (currentSort === 'genre') {
-        list.sort((a, b) => (a.genre || '').localeCompare(b.genre || '', 'zh'));
-      } else if (currentSort === 'singer') {
-        list.sort((a, b) => (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh'));
-      } else if (currentSort === 'genre_singer') {
-        list.sort((a, b) => {
-          const g = (a.genre || '').localeCompare(b.genre || '', 'zh');
-          if (g !== 0) return g;
-          return (a.singers[0] || '').localeCompare(b.singers[0] || '', 'zh');
-        });
-      } else if (kw) {
-        list.sort((a, b) => matchScore(b, kw) - matchScore(a, kw));
-      }
+      list.sort(getCompareFunction());
 
       const container = document.getElementById('songListContainer');
       if (list.length === 0) {
