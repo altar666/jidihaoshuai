@@ -1459,17 +1459,39 @@
             renderSongs();
           }
         } else {
+          // 1. 插入歌曲本体
           const { data: songData, error: songErr } = await sb.from('songs').insert({ user_id: currentUser.id, title, genre, tags }).select().single();
           if (songErr) throw songErr;
 
-          const links = singers.map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] })).filter(l => l.singer_id);
-          if (links.length > 0) {
-            const { error: linkErr } = await sb.from('song_singers').insert(links);
-            if (linkErr) throw linkErr;
+          // 2. 准备所有歌手的关联数据
+          const links = singers
+            .map(name => ({ song_id: songData.id, singer_id: singerIdMap[name] }))
+            .filter(l => l.singer_id);
+
+          let hasError = false;
+
+          // 3. 尝试存歌手（静默重试 3 次，防止网络瞬间抖动）
+          if (links.length !== singers.length) {
+            hasError = true; // 如果歌手 ID 没凑齐，直接标记错误
+          } else {
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              const { error: linkErr } = await sb.from('song_singers').insert(links);
+              if (!linkErr) {
+                hasError = false;
+                break; // 存成功，结束
+              }
+              hasError = true;
+              await new Promise(r => setTimeout(r, 1000)); // 失败等 1 秒重试
+            }
           }
 
-          // 等存好后，悄悄重新拉取数据，把假 ID 替换成真 ID！
+          // 4. 核心步骤：强行从数据库拉取最新真相，覆盖前端假象
           await loadSongs();
+
+          // 5. 如果最终确认失败了，优雅弹窗（此时列表已经同步为真实的残缺状态）
+          if (hasError) {
+            alert(`⚠️《${title}》添加成功，但网络波动导致歌手保存失败。\n请找到这首歌，点“编辑”重新补上歌手。`);
+          }
         }
 
         loadGenres();
