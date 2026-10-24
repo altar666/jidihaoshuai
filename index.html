@@ -556,7 +556,7 @@
   <!-- 全局加载遮罩 -->
   <div id="loadingOverlay" style="display:none; position:fixed; inset:0; background:rgba(12, 74, 110, 0.6); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; flex-direction:column; color:white; font-size:16px; font-weight:bold;">
     <div style="width:40px; height:40px; border:4px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:15px;"></div>
-    正在加载你的歌单...
+    正在加载歌单...
     <style>
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -617,7 +617,7 @@
 
         <!-- 右边：设置资料 + 退出登录 -->
         <div style="display:flex; gap:10px; margin-left:auto;">
-          <button onclick="openProfileModal()" style="padding:6px 14px; font-size:13px; background:linear-gradient(135deg, #10b981, #059669); border-radius:8px;">⚙️ 设置资料</button>
+          <button onclick="openProfileModal()" style="padding:6px 14px; font-size:13px; background:#ffffff; color:#0c4a6e; border:1px solid #bae6fd; border-radius:8px;">设置资料</button>
           <button onclick="handleLogout()" style="padding:6px 14px; font-size:13px; background:linear-gradient(135deg, #f97316, #ea580c); border-radius:8px;">退出登录</button>
         </div>
       </div>
@@ -944,6 +944,9 @@
       const { data: profile } = await sb.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
       if (profile) {
         applyProfileToUI(profile.nickname, profile.website_url);
+        if (profile.nickname) {
+          document.querySelector('h1').innerText = `🎵 ${profile.nickname} 的歌单`;
+        }
       } else {
         // 如果是刚出的新账号或者没设置过
         applyProfileToUI('未命名用户', '');
