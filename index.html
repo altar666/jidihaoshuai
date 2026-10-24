@@ -1058,6 +1058,15 @@
       document.getElementById('loginEmail').value = '';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginMsg').textContent = '';
+
+      // 👇 新增：退出时清理残留的个性化痕迹
+      // 1. 把大标题恢复成默认的
+      document.querySelector('h1').innerText = '🎵 我的歌单';
+      // 2. 把页面背景恢复成默认渐变
+      document.body.style.background = 'linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%) fixed';
+      // 3. 把标题颜色恢复（清除行内样式）
+      document.querySelector('h1').style.background = '';
+      document.querySelector('h1').style.webkitTextFillColor = '';
     }
 
     async function loadGenres() {
