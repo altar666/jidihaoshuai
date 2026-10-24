@@ -752,12 +752,15 @@
       </div>
 
       <div class="form-row">
-        <label>标题背景色</label>
-        <input type="color" id="expTitleBg" value="#f0f0f0" style="width:100%; padding:2px; height:34px; cursor:pointer;" oninput="refreshExportPreview()">
-      </div>
-      <div class="form-row">
-        <label>透明度：<span id="expTitleBgAlphaLabel">100%</span></label>
-        <input type="range" id="expTitleBgAlpha" min="0" max="100" value="100" style="width:100%;" oninput="document.getElementById('expTitleBgAlphaLabel').textContent = this.value + '%'; refreshExportPreview();">
+        <label>标题背景色及透明度</label>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- 颜色小方块 -->
+          <input type="color" id="expTitleBg" value="#f0f0f0" style="width: 44px; height: 34px; padding: 2px; cursor: pointer; flex-shrink: 0;" oninput="refreshExportPreview()">
+          <!-- 透明度滑动条 -->
+          <input type="range" id="expTitleBgAlpha" min="0" max="100" value="100" style="flex: 1; cursor: pointer;" oninput="document.getElementById('expTitleBgAlphaLabel').textContent = this.value + '%'; refreshExportPreview();">
+          <!-- 百分比数字 -->
+          <span id="expTitleBgAlphaLabel" style="font-size: 13px; color: #777; width: 35px; text-align: right; flex-shrink: 0;">100%</span>
+        </div>
       </div>
 
       <div class="form-row">
