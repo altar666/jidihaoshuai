@@ -582,7 +582,7 @@
           <input type="password" id="loginPassword" placeholder="输入密码" style="width:100%;">
         </div>
         <button onclick="handleLogin()" style="width:100%;padding:12px;margin-top:10px;">登录</button>
-        <button onclick="handleSignup()" style="width:100%;padding:12px;margin-top:8px;background:#6c7ae0;">注册新账号</button>
+        <button onclick="document.getElementById('loginBox').style.display='none'; document.getElementById('signupModal').classList.add('show');" style="width:100%;padding:12px;margin-top:8px;background:#6c7ae0;">注册新账号</button>
         <p class="msg" id="loginMsg"></p>
       </div>
     </div>
@@ -592,7 +592,10 @@
       <div class="user-bar" style="justify-content: flex-start; gap: 20px; align-items: center;">
         <!-- 左边：邮箱和按钮 -->
         <div style="display:flex; align-items:center; gap:15px;">
-          <span>👤 <span id="userEmail"></span></span>
+                    <!-- 昵称超链接 -->
+          <a href="#" id="userNicknameLink" target="_blank" style="font-weight:bold; color:#0c4a6e; text-decoration:none; border-bottom:1px dashed #0ea5e9;">
+            👤 <span id="userNickname">加载中...</span>
+          </a>
 
           <!-- 标题颜色 -->
           <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); padding:5px 12px; border-radius:10px; border:1px solid #bae6fd;">
@@ -612,8 +615,11 @@
           </div>
         </div>
 
-        <!-- 右边：退出登录 -->
-        <button onclick="handleLogout()" style="margin-left: auto;">退出登录</button>
+        <!-- 右边：设置资料 + 退出登录 -->
+        <div style="display:flex; gap:10px; margin-left:auto;">
+          <button onclick="openProfileModal()" style="padding:6px 14px; font-size:13px; background:linear-gradient(135deg, #10b981, #059669); border-radius:8px;">⚙️ 设置资料</button>
+          <button onclick="handleLogout()" style="padding:6px 14px; font-size:13px; background:linear-gradient(135deg, #f97316, #ea580c); border-radius:8px;">退出登录</button>
+        </div>
       </div>
 
       <div class="box">
@@ -718,6 +724,52 @@
     </div>
   </div>
 
+  <!-- 注册弹窗 -->
+  <div class="modal-mask" id="signupModal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h2>注册新账号</h2>
+        <button class="close" onclick="document.getElementById('signupModal').classList.remove('show')">×</button>
+      </div>
+      <div class="form-row">
+        <label>邮箱 *</label>
+        <input type="email" id="signupEmail" placeholder="输入邮箱" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <label>密码（至少6位） *</label>
+        <input type="password" id="signupPassword" placeholder="输入密码" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <label>昵称（可重复） *</label>
+        <input type="text" id="signupNickname" placeholder="给自己起个名字" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <label>个人主页网址（选填）</label>
+        <input type="url" id="signupWebsite" placeholder="https://..." style="width:100%;">
+      </div>
+      <button class="submit-btn" onclick="handleSignup()">确认注册</button>
+      <p class="msg" id="signupMsg"></p>
+    </div>
+  </div>
+
+  <!-- 设置资料弹窗 -->
+  <div class="modal-mask" id="profileModal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h2>设置个人资料</h2>
+        <button class="close" onclick="document.getElementById('profileModal').classList.remove('show')">×</button>
+      </div>
+      <div class="form-row">
+        <label>昵称 *</label>
+        <input type="text" id="profileNickname" style="width:100%;">
+      </div>
+      <div class="form-row">
+        <label>个人主页网址（选填）</label>
+        <input type="url" id="profileWebsite" placeholder="https://..." style="width:100%;">
+      </div>
+      <button class="submit-btn" onclick="saveProfile()">保存资料</button>
+    </div>
+  </div>
   <!-- 导出界面 -->
   <div class="export-mask" id="exportMask">
     <div class="export-panel">
@@ -887,7 +939,15 @@
       msg.textContent = '';
       // 登录成功后显示主界面
       currentUser = (await sb.auth.getUser()).data.user;
-      document.getElementById('userEmail').textContent = currentUser.email;
+
+      // 拉取昵称资料
+      const { data: profile } = await sb.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
+      if (profile) {
+        applyProfileToUI(profile.nickname, profile.website_url);
+      } else {
+        // 如果是刚出的新账号或者没设置过
+        applyProfileToUI('未命名用户', '');
+      }
       loginBox.style.display = 'none';
       // 显示加载遮罩
       showLoading();
@@ -907,16 +967,81 @@
     }
 
     // 注册
+    // 注册
     async function handleSignup() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      const msg = document.getElementById('loginMsg');
-      if (!email || !password) { msg.textContent = '请填写邮箱和密码'; msg.className = 'msg error'; return; }
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const nickname = document.getElementById('signupNickname').value.trim();
+      const website = document.getElementById('signupWebsite').value.trim();
+      const msg = document.getElementById('signupMsg');
+
+      if (!email || !password || !nickname) { msg.textContent = '请填写邮箱、密码和昵称'; msg.className = 'msg error'; return; }
       if (password.length < 6) { msg.textContent = '密码至少 6 位'; msg.className = 'msg error'; return; }
+
       msg.textContent = '注册中...'; msg.className = 'msg';
-      const { error } = await sb.auth.signUp({ email, password });
+
+      // 1. 注册账号
+      const { data, error } = await sb.auth.signUp({ email, password });
       if (error) { msg.textContent = '❌ ' + error.message; msg.className = 'msg error'; return; }
-      msg.textContent = '✅ 注册成功！请点“登录”'; msg.className = 'msg success';
+
+      // 2. 如果注册成功，立刻存入资料
+      if (data.user) {
+        await sb.from('user_profiles').insert({
+          user_id: data.user.id,
+          nickname: nickname,
+          website_url: website
+        });
+      }
+
+      msg.textContent = '✅ 注册成功！请返回登录'; msg.className = 'msg success';
+      setTimeout(() => {
+        document.getElementById('signupModal').classList.remove('show');
+        document.getElementById('loginBox').style.display = 'block';
+      }, 1500);
+    }
+
+    // ============ 新增：资料与设置逻辑 ============
+
+    // 打开设置资料弹窗
+    function openProfileModal() {
+      if (!currentUser) return;
+      document.getElementById('profileNickname').value = document.getElementById('userNickname').innerText === '加载中...' ? '' : document.getElementById('userNickname').innerText;
+      const linkHref = document.getElementById('userNicknameLink').href;
+      document.getElementById('profileWebsite').value = linkHref.includes('#') ? '' : linkHref;
+      document.getElementById('profileModal').classList.add('show');
+    }
+
+    // 保存资料
+    async function saveProfile() {
+      const nick = document.getElementById('profileNickname').value.trim();
+      const web = document.getElementById('profileWebsite').value.trim();
+      if (!nick) return alert('昵称不能为空');
+
+      const { error } = await sb.from('user_profiles').upsert({
+        user_id: currentUser.id,
+        nickname: nick,
+        website_url: web
+      });
+
+      if (error) return alert('保存失败：' + error.message);
+
+      applyProfileToUI(nick, web);
+      document.getElementById('profileModal').classList.remove('show');
+      alert('✅ 资料已保存！');
+    }
+
+    // 把昵称和链接显示到顶部
+    function applyProfileToUI(nickname, website) {
+      document.getElementById('userNickname').innerText = nickname || '未命名用户';
+      const link = document.getElementById('userNicknameLink');
+      if (website) {
+        link.href = website;
+        link.title = '点击访问个人主页';
+      } else {
+        link.href = '#';
+        link.onclick = (e) => e.preventDefault();
+        link.title = '未设置个人主页';
+      }
     }
 
     async function handleLogout() {
@@ -2087,7 +2212,11 @@
       document.querySelector('.toolbar button[onclick="openExport()"]').style.display = 'none';
       document.querySelector('.toolbar button[onclick="sharePlaylist()"]').style.display = 'none';
 
-      // 右上角改成一个提示
+      // 1. 查一下分享者的昵称，把标题改掉
+      const { data: profile } = await sb.from('user_profiles').select('nickname').eq('user_id', userId).single();
+      if (profile && profile.nickname) {
+        document.querySelector('h1').innerText = `🎵 ${profile.nickname} 的歌单`;
+      }
       const userBar = document.querySelector('.user-bar');
       userBar.style.display = 'flex';
       userBar.innerHTML = '<span style="color:#0c4a6e;">👀 正在浏览分享的歌单</span><button onclick="window.location.href=window.location.pathname" style="background:#ccc;color:#333;padding:6px 12px;font-size:13px;">返回主页</button>';
