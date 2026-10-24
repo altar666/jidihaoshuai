@@ -2220,14 +2220,28 @@
       document.querySelector('.toolbar button[onclick="sharePlaylist()"]').style.display = 'none';
 
       // 1. 查一下分享者的昵称，把标题改掉
-      const { data: profile } = await sb.from('user_profiles').select('nickname').eq('user_id', userId).single();
+      const { data: profile } = await sb.from('user_profiles').select('nickname, website_url').eq('user_id', userId).single();
       if (profile && profile.nickname) {
         document.querySelector('h1').innerText = `🎵 ${profile.nickname} 的歌单`;
       }
       const userBar = document.querySelector('.user-bar');
       userBar.style.display = 'flex';
-      userBar.innerHTML = '<span style="color:#0c4a6e;">👀 正在浏览分享的歌单</span><button onclick="window.location.href=window.location.pathname" style="background:#ccc;color:#333;padding:6px 12px;font-size:13px;">返回主页</button>';
 
+      // 判断是否有昵称和网址
+      let shareNickname = '朋友';
+      let linkStart = '';
+      let linkEnd = '';
+
+      if (profile && profile.nickname) {
+        shareNickname = profile.nickname;
+        // 如果设置了个人主页，就变成超链接
+        if (profile.website_url) {
+          linkStart = `<a href="${profile.website_url}" target="_blank" style="color:#0284c7; text-decoration:underline; font-weight:bold;">`;
+          linkEnd = `</a>`;
+        }
+      }
+
+      userBar.innerHTML = `<span style="color:#0c4a6e;">👀 正在分享 ${linkStart}${shareNickname}${linkEnd} 的歌单</span><button onclick="window.location.href=window.location.pathname" style="background:#ccc;color:#333;padding:6px 12px;font-size:13px; border:none; cursor:pointer;">返回主页</button>`;
       // 拉取公开数据
       const { data: songs, error } = await sb
         .from('songs')
