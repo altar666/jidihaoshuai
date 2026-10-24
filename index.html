@@ -942,14 +942,14 @@
 
       // 拉取昵称资料
       const { data: profile } = await sb.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
-      if (profile) {
+      if (profile && profile.nickname && profile.nickname.trim() !== '') {
+        // 有昵称，正常显示
         applyProfileToUI(profile.nickname, profile.website_url);
-        if (profile.nickname) {
-          document.querySelector('h1').innerText = `🎵 ${profile.nickname} 的歌单`;
-        }
+        document.querySelector('h1').innerText = `🎵 ${profile.nickname} 的歌单`;
       } else {
-        // 如果是刚出的新账号或者没设置过
+        // 如果没有昵称（或者是空字符串），就显示“未命名用户”，标题恢复“我的歌单”
         applyProfileToUI('未命名用户', '');
+        document.querySelector('h1').innerText = `🎵 我的歌单`;
       }
       loginBox.style.display = 'none';
       // 显示加载遮罩
