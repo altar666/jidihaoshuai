@@ -1029,6 +1029,10 @@
       if (error) return alert('保存失败：' + error.message);
 
       applyProfileToUI(nick, web);
+
+      // 👇 新增这一行：保存的时候，顺便把大标题也改掉
+      document.querySelector('h1').innerText = `🎵 ${nick} 的歌单`;
+
       document.getElementById('profileModal').classList.remove('show');
       alert('✅ 资料已保存！');
     }
