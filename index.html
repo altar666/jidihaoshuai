@@ -223,17 +223,43 @@
     /* 展开时的状态 */
     #luckydraw-sidebar.open { transform: translateX(0); }
 
+    /* 悬浮按钮（极简文字版） */
     #sidebar-toggle-btn {
       position: fixed;
-      left: 0; top: 120px; z-index: 1001;
-      background: linear-gradient(135deg, #a855f7, #9333ea);
-      color: white; border: none; padding: 12px 16px;
-      border-radius: 0 12px 12px 0; cursor: pointer; font-size: 20px;
-      box-shadow: 2px 4px 10px rgba(147, 51, 234, 0.3);
+      left: 0; top: 120px;
+      z-index: 1001;
+      width: 50px;
+      height: 80px; /* 高度做成一个小长方形 */
+      background: #ffffff;
+      border: 2px solid #475569; /* 深灰色边框，模仿你图里的框 */
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+      box-shadow: 2px 4px 12px rgba(0,0,0,0.08);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
       transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex; align-items: center; justify-content: center;
     }
+    /* 侧边栏展开时，按钮跟着向右移动 */
     #sidebar-toggle-btn.shift { left: 380px; }
+
+    /* 文字样式：红色、竖排排版 */
+    #sidebar-toggle-btn span {
+      color: #ef4444; /* 红色文字 */
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.2;
+      writing-mode: vertical-lr; /* 让文字竖着排 */
+      letter-spacing: 2px;
+    }
+
+    /* 悬停时的反馈 */
+    #sidebar-toggle-btn:hover {
+      background: #f8fafc;
+    }
 
     /* 转盘容器 */
     .wheel-container {
@@ -749,8 +775,7 @@
         </div>
         <div id="songListContainer"></div>
       </div>
-            <!-- 👇 把侧边栏塞进 mainBox 里面（就放在这） -->
-    <button id="sidebar-toggle-btn" onclick="toggleLuckyDraw()">🎰</button>
+    <!-- 转盘侧边栏 -->
     <div id="luckydraw-sidebar">
       <h2 style="font-size: 18px; margin-bottom: 10px; color: #0c4a6e; text-align: center;">✨ 命运转盘</h2>
       <div class="wheel-container">
@@ -762,6 +787,12 @@
         <div class="res-title" id="wheel-res-title">等待抽取</div>
         <div class="res-singer" id="wheel-res-singer">点击中心按钮开始</div>
       </div>
+    </div>
+
+    <!-- 悬浮呼出按钮（纯文字极简版） -->
+    <div id="sidebar-toggle-btn" onclick="toggleLuckyDraw()" style="display: none;">
+      <span>抽歌</span>
+      <span>转盘</span>
     </div>
     </div>
   </div>
@@ -1083,6 +1114,7 @@
 
       // 加载完成，显示主界面并隐藏遮罩
       mainBox.style.display = 'block';
+      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
       hideLoading();
     }
 
@@ -2399,6 +2431,7 @@
       const opacitySlider = document.getElementById('cardOpacitySlider');
       if (opacitySlider && opacitySlider.parentElement) opacitySlider.parentElement.style.display = 'none';
       renderPublicSongs();
+      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
       hideLoading();
     }
 
