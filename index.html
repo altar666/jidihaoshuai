@@ -223,117 +223,6 @@
     /* 展开时的状态 */
     #luckydraw-sidebar.open { transform: translateX(0); }
 
-    /* 悬浮按钮（极简文字版） */
-    #sidebar-toggle-btn {
-      position: fixed;
-      left: 0; top: 120px;
-      z-index: 1001;
-      width: 50px;
-      height: 80px; /* 高度做成一个小长方形 */
-      background: #ffffff;
-      border: 2px solid #475569; /* 深灰色边框，模仿你图里的框 */
-      border-left: none;
-      border-radius: 0 12px 12px 0;
-      box-shadow: 2px 4px 12px rgba(0,0,0,0.08);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    /* 侧边栏展开时，按钮跟着向右移动 */
-    #sidebar-toggle-btn.shift { left: 380px; }
-
-    /* 文字样式：红色、竖排排版 */
-    #sidebar-toggle-btn span {
-      color: #ef4444; /* 红色文字 */
-      font-size: 13px;
-      font-weight: bold;
-      line-height: 1.2;
-      writing-mode: vertical-lr; /* 让文字竖着排 */
-      letter-spacing: 2px;
-    }
-
-    /* 悬停时的反馈 */
-    #sidebar-toggle-btn:hover {
-      background: #f8fafc;
-    }
-
-    /* 转盘容器 */
-    .wheel-container {
-      position: relative;
-      width: 300px; height: 300px;
-      margin: 20px auto 30px auto;
-      flex-shrink: 0;
-    }
-
-    /* 指针 */
-    .pointer {
-      position: absolute;
-      top: -15px; left: 50%;
-      transform: translateX(-50%);
-      width: 0; height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-top: 40px solid #ef4444;
-      z-index: 10;
-      filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
-    }
-
-    /* 转盘圆盘 */
-    .wheel {
-      width: 100%; height: 100%;
-      border-radius: 50%;
-      border: 6px solid #fde047;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      position: relative;
-      overflow: hidden;
-      transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); /* 旋转减速动画 */
-    }
-
-    /* 转盘上的文字 */
-    .wheel-sector-text {
-      position: absolute;
-      top: 50%; left: 50%;
-      color: white; font-size: 13px; font-weight: bold;
-      width: 100px; text-align: center;
-      transform-origin: 0 0;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-      z-index: 2;
-    }
-
-    /* 中心抽奖按钮 */
-    .wheel-center-btn {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 70px; height: 70px;
-      background: white; color: #0ea5e9;
-      border-radius: 50%; border: none;
-      font-size: 16px; font-weight: bold;
-      cursor: pointer; z-index: 11;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      transition: 0.2s;
-    }
-    .wheel-center-btn:hover { transform: translate(-50%, -50%) scale(1.05); }
-    .wheel-center-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: translate(-50%, -50%); }
-
-    /* 抽奖结果展示 */
-    .wheel-result {
-      text-align: center;
-      padding: 15px;
-      background: #f0f9ff;
-      border: 2px dashed #7dd3fc;
-      border-radius: 16px;
-      min-height: 80px;
-      display: flex; flex-direction: column; justify-content: center;
-    }
-    .wheel-result .res-title { font-size: 22px; font-weight: bold; color: #0c4a6e; word-break: break-all; }
-    .wheel-result .res-singer { font-size: 14px; color: #0284c7; margin-top: 6px; }
-
     /* 表格 */
     .song-table {
       width: 100%;
@@ -775,25 +664,7 @@
         </div>
         <div id="songListContainer"></div>
       </div>
-    <!-- 转盘侧边栏 -->
-    <div id="luckydraw-sidebar">
-      <h2 style="font-size: 18px; margin-bottom: 10px; color: #0c4a6e; text-align: center;">✨ 命运转盘</h2>
-      <div class="wheel-container">
-        <div class="pointer"></div>
-        <div class="wheel" id="luckyWheel"></div>
-        <button class="wheel-center-btn" id="wheelSpinBtn" onclick="spinLuckyWheel()">抽歌</button>
-      </div>
-      <div class="wheel-result">
-        <div class="res-title" id="wheel-res-title">等待抽取</div>
-        <div class="res-singer" id="wheel-res-singer">点击中心按钮开始</div>
-      </div>
-    </div>
 
-    <!-- 悬浮呼出按钮（纯文字极简版） -->
-    <div id="sidebar-toggle-btn" onclick="toggleLuckyDraw()" style="display: none;">
-      <span>抽歌</span>
-      <span>转盘</span>
-    </div>
     </div>
   </div>
       <!-- 二维码分享弹窗 -->
@@ -1114,7 +985,6 @@
 
       // 加载完成，显示主界面并隐藏遮罩
       mainBox.style.display = 'block';
-      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
       hideLoading();
     }
 
@@ -2431,7 +2301,6 @@
       const opacitySlider = document.getElementById('cardOpacitySlider');
       if (opacitySlider && opacitySlider.parentElement) opacitySlider.parentElement.style.display = 'none';
       renderPublicSongs();
-      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
       hideLoading();
     }
 
