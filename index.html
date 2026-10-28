@@ -206,22 +206,21 @@
     }
 
 
-            /* ============ 转盘侧边栏样式 ============ */
     #luckydraw-sidebar {
       position: fixed;
       left: 0; top: 0; bottom: 0;
-      width: 380px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
+      width: 380px; /* 侧边栏宽度 */
+      background: #ffffff; /* 👈 纯白底色 */
       box-shadow: 4px 0 25px rgba(14, 165, 233, 0.2);
       z-index: 1000;
-      transform: translateX(-100%);
+      transform: translateX(-100%); /* 👈 必须要有这句，才能靠边收起！ */
       transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
       padding: 24px;
       border-right: 1px solid rgba(255,255,255,0.8);
     }
+    /* 展开时的状态 */
     #luckydraw-sidebar.open { transform: translateX(0); }
 
     #sidebar-toggle-btn {
@@ -750,6 +749,20 @@
         </div>
         <div id="songListContainer"></div>
       </div>
+            <!-- 👇 把侧边栏塞进 mainBox 里面（就放在这） -->
+    <button id="sidebar-toggle-btn" onclick="toggleLuckyDraw()">🎰</button>
+    <div id="luckydraw-sidebar">
+      <h2 style="font-size: 18px; margin-bottom: 10px; color: #0c4a6e; text-align: center;">✨ 命运转盘</h2>
+      <div class="wheel-container">
+        <div class="pointer"></div>
+        <div class="wheel" id="luckyWheel"></div>
+        <button class="wheel-center-btn" id="wheelSpinBtn" onclick="spinLuckyWheel()">抽歌</button>
+      </div>
+      <div class="wheel-result">
+        <div class="res-title" id="wheel-res-title">等待抽取</div>
+        <div class="res-singer" id="wheel-res-singer">点击中心按钮开始</div>
+      </div>
+    </div>
     </div>
   </div>
       <!-- 二维码分享弹窗 -->
@@ -985,26 +998,7 @@
       </div>
     </div>
   </div>
-<!-- 侧边栏呼出按钮 -->
-<button id="sidebar-toggle-btn" onclick="toggleLuckyDraw()">🎰</button>
 
-<!-- 转盘侧边栏 -->
-<div id="luckydraw-sidebar">
-  <h2 style="font-size: 18px; margin-bottom: 10px; color: #0c4a6e; text-align: center;">✨ 命运转盘</h2>
-
-  <div class="wheel-container">
-    <div class="pointer"></div>
-    <div class="wheel" id="luckyWheel">
-      <!-- 扇区文字会由 JS 自动生成 -->
-    </div>
-    <button class="wheel-center-btn" id="wheelSpinBtn" onclick="spinLuckyWheel()">抽歌</button>
-  </div>
-
-  <div class="wheel-result">
-    <div class="res-title" id="wheel-res-title">等待抽取</div>
-    <div class="res-singer" id="wheel-res-singer">点击中心按钮开始</div>
-  </div>
-</div>
 
   <script src="./libs/supabase.js"></script>
   <script src="./libs/pinyin.js"></script>
