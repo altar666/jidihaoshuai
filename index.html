@@ -206,33 +206,62 @@
     }
 
 
-    /* ============ 悬浮圆形按钮 (可拖拽) ============ */
+    /* ============ 悬浮圆形按钮 (透明水球质感) ============ */
     #sidebar-toggle-btn {
       position: fixed;
       left: 20px;
       top: 120px;
       z-index: 1001;
-      width: 64px;
-      height: 64px;
-      background: #ffffff;
-      border: 2px solid #475569;
-      border-radius: 50%; /* 圆形 */
-      box-shadow: 2px 4px 12px rgba(0,0,0,0.15);
+      width: 72px;
+      height: 72px;
+      /* 核心1：半透明渐变背景，模拟水球通透感 */
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1));
+      /* 核心2：毛玻璃效果，透出背后的页面颜色 */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      /* 核心3：亮色边框 + 内发光，像玻璃的边缘 */
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow:
+        inset 0 0 15px rgba(255, 255, 255, 0.6), /* 内部高光 */
+        0 8px 20px rgba(14, 165, 233, 0.2);      /* 外部水波阴影 */
+      border-radius: 50%;
       cursor: move;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       touch-action: none;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
+    /* 鼠标悬停时，水球微微放大，阴影加深 */
+    #sidebar-toggle-btn:hover {
+      transform: scale(1.05);
+      box-shadow:
+        inset 0 0 20px rgba(255, 255, 255, 0.9),
+        0 10px 25px rgba(14, 165, 233, 0.4);
+    }
+
+    /* 上面的字：老虎机 */
     #sidebar-toggle-btn .btn-text-top {
-      color: #ef4444; font-size: 12px; font-weight: bold; line-height: 1.2; letter-spacing: 1px;
+      color: #0c4a6e; /* 和歌曲列表一样的深蓝色 */
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.2;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.8);
     }
+
+    /* 下面的字：抽歌 */
     #sidebar-toggle-btn .btn-text-bottom {
-      color: #ef4444; font-size: 13px; font-weight: bold; line-height: 1.2; letter-spacing: 2px; margin-top: 2px;
+      color: #0c4a6e; /* 和歌曲列表一样的深蓝色 */
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.2;
+      letter-spacing: 2px;
+      margin-top: 2px;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.8);
     }
-    #sidebar-toggle-btn:hover { background: #f8fafc; transform: scale(1.02); }
 
     /* ============ 老虎机样式 ============ */
     .slot-machine {
