@@ -206,22 +206,64 @@
     }
 
 
-    #luckydraw-sidebar {
+    /* ============ 悬浮圆形按钮 (可拖拽) ============ */
+    #sidebar-toggle-btn {
       position: fixed;
-      left: 0; top: 0; bottom: 0;
-      width: 380px; /* 侧边栏宽度 */
-      background: #ffffff; /* 👈 纯白底色 */
-      box-shadow: 4px 0 25px rgba(14, 165, 233, 0.2);
-      z-index: 1000;
-      transform: translateX(-100%); /* 👈 必须要有这句，才能靠边收起！ */
-      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      left: 20px;
+      top: 120px;
+      z-index: 1001;
+      width: 64px;
+      height: 64px;
+      background: #ffffff;
+      border: 2px solid #475569;
+      border-radius: 50%; /* 圆形 */
+      box-shadow: 2px 4px 12px rgba(0,0,0,0.15);
+      cursor: move;
       display: flex;
       flex-direction: column;
-      padding: 24px;
-      border-right: 1px solid rgba(255,255,255,0.8);
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
     }
-    /* 展开时的状态 */
-    #luckydraw-sidebar.open { transform: translateX(0); }
+
+    #sidebar-toggle-btn .btn-text-top {
+      color: #ef4444; font-size: 12px; font-weight: bold; line-height: 1.2; letter-spacing: 1px;
+    }
+    #sidebar-toggle-btn .btn-text-bottom {
+      color: #ef4444; font-size: 13px; font-weight: bold; line-height: 1.2; letter-spacing: 2px; margin-top: 2px;
+    }
+    #sidebar-toggle-btn:hover { background: #f8fafc; transform: scale(1.02); }
+
+    /* ============ 老虎机样式 ============ */
+    .slot-machine {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 16px;
+      border: 2px solid #bae6fd;
+    }
+    .slot-window {
+      flex: 1;
+      height: 70px;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+    .slot-reel {
+      position: absolute;
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: bold; color: #0c4a6e;
+    }
+    .slot-reel.blur {
+      filter: blur(2px);
+      opacity: 0.8;
+    }
 
     /* 表格 */
     .song-table {
@@ -667,6 +709,42 @@
 
     </div>
   </div>
+
+  <!-- 👇 新增：老虎机悬浮按钮 (拖拽 + 圆形) -->
+  <div id="sidebar-toggle-btn" style="display: none;">
+    <div class="btn-text-top">老虎机</div>
+    <div class="btn-text-bottom">抽歌</div>
+  </div>
+
+  <!-- 👇 新增：老虎机弹窗 -->
+  <div id="lucky-modal" class="modal-mask">
+    <div class="modal" style="max-width: 460px; text-align: center; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 22px; color: #0ea5e9; margin: 0;">🎰 命运老虎机</h2>
+        <button class="close" onclick="toggleLuckyDraw()" style="font-size: 24px; color: #94a3b8; background: none; border: none; cursor: pointer; padding: 0;">×</button>
+      </div>
+
+      <div class="slot-machine">
+        <div class="slot-window">
+          <div class="slot-reel" id="reel-genre">种类</div>
+        </div>
+        <div class="slot-window">
+          <div class="slot-reel" id="reel-singer">歌手</div>
+        </div>
+        <div class="slot-window">
+          <div class="slot-reel" id="reel-song">歌名</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 25px; min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+        <div id="slot-res-title" style="font-size: 20px; font-weight: bold; color: #0c4a6e;">准备就绪</div>
+        <div id="slot-res-singer" style="font-size: 14px; color: #0284c7; margin-top: 6px;">点击下方按钮开始</div>
+      </div>
+
+      <button id="slot-spin-btn" onclick="spinSlotMachine()" style="width: 100%; padding: 14px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; border-radius: 12px; margin-top: 20px; cursor: pointer; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); transition: 0.2s;">开始抽取</button>
+    </div>
+  </div>
+
       <!-- 二维码分享弹窗 -->
   <div class="modal-mask" id="qrModal">
     <div class="modal" style="text-align:center; max-width:340px;">
@@ -985,6 +1063,7 @@
 
       // 加载完成，显示主界面并隐藏遮罩
       mainBox.style.display = 'block';
+      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
       hideLoading();
     }
 
@@ -2240,6 +2319,7 @@
       // 隐藏登录框，显示主界面
       loginBox.style.display = 'none';
       mainBox.style.display = 'block';
+      document.getElementById('sidebar-toggle-btn').style.display = 'flex';
 
       // 隐藏“添加”按钮
       document.querySelector('.toolbar .add-btn').style.display = 'none';
@@ -2493,99 +2573,163 @@
       document.getElementById('cardOpacitySlider').value = savedOpacity;
       changeCardOpacity(savedOpacity);
     }
-// ============ 命运转盘逻辑 ============
+// ============ 老虎机逻辑 + 拖拽功能 ============
 
-// 展开/收起侧边栏
-function toggleLuckyDraw() {
-  const sidebar = document.getElementById('luckydraw-sidebar');
+// 1. 拖拽功能
+document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('sidebar-toggle-btn');
-  sidebar.classList.toggle('open');
-  btn.classList.toggle('shift');
-}
+  let isDragging = false;
+  let startX, startY, initialLeft, initialTop;
 
-let isSpinning = false;
-let currentWheelRotation = 0;
+  btn.addEventListener('mousedown', (e) => {
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = btn.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    document.body.style.userSelect = 'none';
 
-// 在转盘上绘制 8 个扇形和文字
-function renderWheel() {
-  const wheel = document.getElementById('luckyWheel');
-  // 清除旧文字
-  document.querySelectorAll('.wheel-sector-text').forEach(e => e.remove());
+    const onMouseMove = (moveEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true;
 
-  // 随机挑 8 首歌放在转盘外观上
-  if (!allSongs || allSongs.length === 0) return;
-  const displaySongs = [...allSongs].sort(() => 0.5 - Math.random()).slice(0, 8);
+      if (isDragging) {
+        let newLeft = Math.max(0, Math.min(initialLeft + dx, window.innerWidth - btn.offsetWidth));
+        let newTop = Math.max(0, Math.min(initialTop + dy, window.innerHeight - btn.offsetHeight));
+        btn.style.left = `${newLeft}px`;
+        btn.style.top = `${newTop}px`;
+        btn.style.right = 'auto';
+        btn.style.bottom = 'auto';
+      }
+    };
 
-  // 扇形颜色
-  const colors = ['#0ea5e9', '#38bdf8', '#0ea5e9', '#38bdf8', '#0ea5e9', '#38bdf8', '#0ea5e9', '#38bdf8'];
-  wheel.style.background = `conic-gradient(
-    #0ea5e9 0deg 45deg, #38bdf8 45deg 90deg,
-    #0ea5e9 90deg 135deg, #38bdf8 135deg 180deg,
-    #0ea5e9 180deg 225deg, #38bdf8 225deg 270deg,
-    #0ea5e9 270deg 315deg, #38bdf8 315deg 360deg
-  )`;
+    const onMouseUp = () => {
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
 
-  // 填充文字（计算每个扇形的中心坐标）
-  displaySongs.forEach((song, i) => {
-    const angle = i * 45 + 22.5; // 每个扇形 45 度
-    const rad = angle * (Math.PI / 180);
-    // 这里的 100 是文字距离圆心的半径
-    const x = 150 + 100 * Math.sin(rad);
-    const y = 150 - 100 * Math.cos(rad);
-
-    const div = document.createElement('div');
-    div.className = 'wheel-sector-text';
-    div.style.left = x + 'px';
-    div.style.top = y + 'px';
-    div.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-    div.innerText = song.title;
-    wheel.appendChild(div);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   });
+
+  btn.addEventListener('click', (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    toggleLuckyDraw();
+  });
+});
+
+// 2. 老虎机逻辑
+function toggleLuckyDraw() {
+  const modal = document.getElementById('lucky-modal');
+  modal.classList.toggle('show');
+  if (modal.classList.contains('show')) resetSlot();
 }
 
-// 点击转盘中心开始抽歌
-function spinLuckyWheel() {
+let isSlotSpinning = false;
+
+function resetSlot() {
+  if (isSlotSpinning) return;
+  document.getElementById('reel-genre').innerText = '种类';
+  document.getElementById('reel-singer').innerText = '歌手';
+  document.getElementById('reel-song').innerText = '歌名';
+  document.getElementById('slot-res-title').innerText = '准备就绪';
+  document.getElementById('slot-res-singer').innerText = '点击下方按钮开始';
+  document.getElementById('slot-spin-btn').innerText = '开始抽取';
+}
+
+function spinSlotMachine() {
+  if (isSlotSpinning) return;
   if (!allSongs || allSongs.length === 0) return alert('没有歌曲可以抽！');
-  if (isSpinning) return;
-  isSpinning = true;
 
-  const btn = document.getElementById('wheelSpinBtn');
-  const titleEl = document.getElementById('wheel-res-title');
-  const singerEl = document.getElementById('wheel-res-singer');
-  const wheel = document.getElementById('luckyWheel');
+  isSlotSpinning = true;
+  const btn = document.getElementById('slot-spin-btn');
+  const titleEl = document.getElementById('slot-res-title');
+  const singerEl = document.getElementById('slot-res-singer');
+  const reelGenre = document.getElementById('reel-genre');
+  const reelSinger = document.getElementById('reel-singer');
+  const reelSong = document.getElementById('reel-song');
 
-  btn.disabled = true;
-  titleEl.innerText = '命运转动中...';
-  singerEl.innerText = '';
+  btn.innerText = '命运转动中...';
+  btn.style.opacity = '0.7';
+  titleEl.innerText = '抽取中...';
+  singerEl.innerText = '正在为您筛选歌曲';
 
-  // 真正随机抽出一首歌
-  const hitSong = allSongs[Math.floor(Math.random() * allSongs.length)];
+  reelGenre.classList.add('blur');
+  reelSinger.classList.add('blur');
+  reelSong.classList.add('blur');
 
-  // 转盘旋转计算 (至少转 5 圈 + 随机角度)
-  const spins = 5 + Math.floor(Math.random() * 3);
-  currentWheelRotation += spins * 360 + Math.floor(Math.random() * 360);
+  const allGenres = [...new Set(allSongs.map(s => s.genre).filter(Boolean))];
+  const allSingers = [...new Set(allSongs.flatMap(s => s.singers))];
 
-  // 触发 CSS 旋转
-  wheel.style.transform = `rotate(${currentWheelRotation}deg)`;
+  const hitGenre = allGenres[Math.floor(Math.random() * allGenres.length)];
+  const songsInGenre = allSongs.filter(s => s.genre === hitGenre);
+  const singersInGenre = [...new Set(songsInGenre.flatMap(s => s.singers))];
+  const hitSinger = singersInGenre[Math.floor(Math.random() * singersInGenre.length)];
+  const songsInSinger = songsInGenre.filter(s => s.singers.includes(hitSinger));
+  const hitSong = songsInSinger[Math.floor(Math.random() * songsInSinger.length)];
 
-  // 等待 CSS 动画结束 (4秒)
-  setTimeout(() => {
-    isSpinning = false;
-    btn.disabled = false;
+  let tickCount = 0;
+  let genreLocked = false;
+  let singerLocked = false;
+  let songLocked = false;
 
-    // 显示结果
-    titleEl.innerText = `🎵 ${hitSong.title}`;
-    singerEl.innerText = `🎤 ${hitSong.singers.join(' / ')}`;
+  const scrollInterval = setInterval(() => {
+    tickCount++;
 
-    // 让转盘刷新一下外观，准备下一次抽
-    setTimeout(renderWheel, 500);
+    // 第一列：约 2 秒锁定
+    if (!genreLocked) {
+      reelGenre.innerText = allGenres[Math.floor(Math.random() * allGenres.length)] || '随机';
+      if (tickCount > 20) {
+        genreLocked = true;
+        reelGenre.innerText = hitGenre;
+        reelGenre.classList.remove('blur');
+      }
+    }
 
-  }, 4000);
+    // 第二列：比第一列晚 1 秒
+    if (!singerLocked) {
+      reelSinger.innerText = allSingers[Math.floor(Math.random() * allSingers.length)] || '随机';
+      if (tickCount > 30) {
+        singerLocked = true;
+        reelSinger.innerText = hitSinger;
+        reelSinger.classList.remove('blur');
+      }
+    }
+
+    // 第三列：比第二列晚 1 秒
+    if (!songLocked) {
+      reelSong.innerText = allSongs[Math.floor(Math.random() * allSongs.length)].title;
+      if (tickCount > 40) {
+        songLocked = true;
+        clearInterval(scrollInterval);
+
+        reelSong.innerText = hitSong.title;
+        reelSong.classList.remove('blur');
+
+        titleEl.innerText = `🎵 ${hitSong.title}`;
+        singerEl.innerText = `🎤 ${hitSong.singers.join(' / ')}`;
+
+        const copyText = `点歌 ${hitSong.title}`;
+        navigator.clipboard.writeText(copyText).then(() => {
+          alert(`✅ 你已经获得歌曲粘贴板，快复制去直播间点歌吧！\n\n内容已复制：${copyText}`);
+        }).catch(err => {
+          alert(`⚠️ 自动复制失败，请手动复制以下内容去点歌：\n\n点歌 ${hitSong.title}`);
+        });
+
+        isSlotSpinning = false;
+        btn.innerText = '再抽一次';
+        btn.style.opacity = '1';
+      }
+    }
+  }, 100);
 }
-
-// 页面加载完毕或切换账号后，自动把转盘画出来
-// 我们可以用个定时器或者直接在现有代码的最后调一下
-setTimeout(renderWheel, 1000);
   </script>
 </body>
 </html>
