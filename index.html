@@ -283,15 +283,38 @@
       box-shadow: inset 0 4px 8px rgba(0,0,0,0.05);
       border: 1px solid #e2e8f0;
     }
+
     .slot-reel {
       position: absolute;
       width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
       font-size: 15px; font-weight: bold; color: #0c4a6e;
+      /* 👇 核心1：让文字在上下移动时产生平滑的过渡感 */
+      transition: transform 0.1s linear, opacity 0.1s linear;
     }
+
     .slot-reel.blur {
       filter: blur(2px);
-      opacity: 0.8;
+      opacity: 0.5;
+    }
+
+    /* 👇 核心2：给窗口加上上下渐变的白色遮罩，模拟机械滚轮的边缘隐藏感 */
+    .slot-window::before,
+    .slot-window::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 20px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .slot-window::before {
+      top: 0;
+      background: linear-gradient(to bottom, #ffffff 0%, transparent 100%);
+    }
+    .slot-window::after {
+      bottom: 0;
+      background: linear-gradient(to top, #ffffff 0%, transparent 100%);
     }
 
     /* 表格 */
@@ -2710,52 +2733,91 @@ function spinSlotMachine() {
   let singerLocked = false;
   let songLocked = false;
 
+  // 滚动的定时器
   const scrollInterval = setInterval(() => {
     tickCount++;
 
-    // 第一列：约 2 秒锁定
+    // 1. 种类列滚动 (0~2秒)
     if (!genreLocked) {
-      reelGenre.innerText = allGenres[Math.floor(Math.random() * allGenres.length)] || '随机';
+      // 模拟向下位移滚动
+      reelGenre.style.transform = `translateY(-100%)`;
+      setTimeout(() => {
+        reelGenre.innerText = allGenres[Math.floor(Math.random() * allGenres.length)] || '随机';
+        reelGenre.style.transition = 'none';
+        reelGenre.style.transform = `translateY(100%)`;
+        // 强制浏览器重绘
+        reelGenre.offsetHeight;
+        reelGenre.style.transition = 'transform 0.1s linear, opacity 0.1s linear';
+        reelGenre.style.transform = `translateY(0)`;
+      }, 50);
+
       if (tickCount > 20) {
         genreLocked = true;
-        reelGenre.innerText = hitGenre;
-        reelGenre.classList.remove('blur');
+        setTimeout(() => {
+          reelGenre.innerText = hitGenre;
+          reelGenre.style.transform = `translateY(0)`;
+          reelGenre.classList.remove('blur');
+        }, 50);
       }
     }
 
-    // 第二列：比第一列晚 1 秒
+    // 2. 歌手列滚动 (0~3秒)
     if (!singerLocked) {
-      reelSinger.innerText = allSingers[Math.floor(Math.random() * allSingers.length)] || '随机';
+      reelSinger.style.transform = `translateY(-100%)`;
+      setTimeout(() => {
+        reelSinger.innerText = allSingers[Math.floor(Math.random() * allSingers.length)] || '随机';
+        reelSinger.style.transition = 'none';
+        reelSinger.style.transform = `translateY(100%)`;
+        reelSinger.offsetHeight;
+        reelSinger.style.transition = 'transform 0.1s linear, opacity 0.1s linear';
+        reelSinger.style.transform = `translateY(0)`;
+      }, 50);
+
       if (tickCount > 30) {
         singerLocked = true;
-        reelSinger.innerText = hitSinger;
-        reelSinger.classList.remove('blur');
+        setTimeout(() => {
+          reelSinger.innerText = hitSinger;
+          reelSinger.style.transform = `translateY(0)`;
+          reelSinger.classList.remove('blur');
+        }, 50);
       }
     }
 
-    // 第三列：比第二列晚 1 秒
+    // 3. 歌名列滚动 (0~4秒)
     if (!songLocked) {
-      reelSong.innerText = allSongs[Math.floor(Math.random() * allSongs.length)].title;
+      reelSong.style.transform = `translateY(-100%)`;
+      setTimeout(() => {
+        reelSong.innerText = allSongs[Math.floor(Math.random() * allSongs.length)].title;
+        reelSong.style.transition = 'none';
+        reelSong.style.transform = `translateY(100%)`;
+        reelSong.offsetHeight;
+        reelSong.style.transition = 'transform 0.1s linear, opacity 0.1s linear';
+        reelSong.style.transform = `translateY(0)`;
+      }, 50);
+
       if (tickCount > 40) {
         songLocked = true;
         clearInterval(scrollInterval);
 
-        reelSong.innerText = hitSong.title;
-        reelSong.classList.remove('blur');
+        setTimeout(() => {
+          reelSong.innerText = hitSong.title;
+          reelSong.style.transform = `translateY(0)`;
+          reelSong.classList.remove('blur');
 
-        titleEl.innerText = `🎵 ${hitSong.title}`;
-        singerEl.innerText = `🎤 ${hitSong.singers.join(' / ')}`;
+          titleEl.innerText = `🎵 ${hitSong.title}`;
+          singerEl.innerText = `🎤 ${hitSong.singers.join(' / ')}`;
 
-        const copyText = `点歌 ${hitSong.title}`;
-        navigator.clipboard.writeText(copyText).then(() => {
-          alert(`✅ 你已经获得歌曲粘贴板，快复制去直播间点歌吧！\n\n内容已复制：${copyText}`);
-        }).catch(err => {
-          alert(`⚠️ 自动复制失败，请手动复制以下内容去点歌：\n\n点歌 ${hitSong.title}`);
-        });
+          const copyText = `点歌 ${hitSong.title}`;
+          navigator.clipboard.writeText(copyText).then(() => {
+            alert(`✅ 你已经获得歌曲粘贴板，快复制去直播间点歌吧！\n\n内容已复制：${copyText}`);
+          }).catch(err => {
+            alert(`⚠️ 自动复制失败，请手动复制以下内容去点歌：\n\n点歌 ${hitSong.title}`);
+          });
 
-        isSlotSpinning = false;
-        btn.innerText = '再抽一次';
-        btn.style.opacity = '1';
+          isSlotSpinning = false;
+          btn.innerText = '再抽一次';
+          btn.style.opacity = '1';
+        }, 50);
       }
     }
   }, 100);
