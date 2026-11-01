@@ -2721,12 +2721,16 @@ function spinSlotMachine() {
   const allGenres = [...new Set(allSongs.map(s => s.genre).filter(Boolean))];
   const allSingers = [...new Set(allSongs.flatMap(s => s.singers))];
 
-  const hitGenre = allGenres[Math.floor(Math.random() * allGenres.length)];
-  const songsInGenre = allSongs.filter(s => s.genre === hitGenre);
-  const singersInGenre = [...new Set(songsInGenre.flatMap(s => s.singers))];
-  const hitSinger = singersInGenre[Math.floor(Math.random() * singersInGenre.length)];
-  const songsInSinger = songsInGenre.filter(s => s.singers.includes(hitSinger));
-  const hitSong = songsInSinger[Math.floor(Math.random() * songsInSinger.length)];
+  // 👇 全新核心算法：全库所有歌曲绝对平权抽取
+  // 1. 直接在整个歌单里，100% 平等地抽中一首歌（每首歌概率相同）
+  const hitSong = allSongs[Math.floor(Math.random() * allSongs.length)];
+
+  // 2. 倒推这首歌属于什么种类和歌手，用于老虎机展示
+  const hitGenre = hitSong.genre || '未分类';
+  // 因为有合唱，一首歌可能有多个歌手，我们随机展示其中一位，或者全展示
+  const hitSinger = hitSong.singers.length > 0
+    ? hitSong.singers[Math.floor(Math.random() * hitSong.singers.length)]
+    : '未知歌手';
 
   let tickCount = 0;
   let genreLocked = false;
